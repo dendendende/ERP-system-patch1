@@ -75,3 +75,5 @@ Full field lists live in the phase files where each table is created.
 
 Tax / Coretax, payment gateway, native mobile app, multi-currency, budgets, AI chat assistant.
 Do not add these. Keep `entries` clean so a ledger and tax can be added later.
+
+@AGENTS.md
