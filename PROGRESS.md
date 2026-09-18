@@ -11,7 +11,7 @@
 - If interrupted mid-task, the next session starts by running `git status` and resuming that task.
 
 ## Blockers
-- (none)
+- P0-T3 / P0-T7 / Phase 0 acceptance: "CI green", "deploy to Vercel preview" and "login with 2FA on preview" need the human: push the branch, and provide the staging Supabase project + Vercel project (set NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY / SESSION_TIMEOUT_MINUTES in Vercel). Local equivalents all pass.
 
 ## Decisions log
 - 2026-09-18 · Next.js 16 scaffold: `typecheck` runs `next typegen` first (route types like `LayoutProps` are generated). Next 16 renamed `middleware` → `proxy`.
@@ -30,7 +30,7 @@
 - [x] P0-T4 Supabase and migrations
 - [x] P0-T5 Auth, 2FA, roles [REVIEW]
 - [ ] P0-T6 Audit log [REVIEW] — ⏸ awaiting review
-- [ ] P0-T7 App shell
+- [x] P0-T7 App shell
 - [ ] Phase 0 acceptance passed → merge
 
 ## Phase 1 — Bank data
@@ -106,3 +106,4 @@
 - 2026-09-18 · P0-T5 · implemented + committed (e936c96); RLS/route/timeout tests pass; scripted flow verified login→enroll→aal2→role guard for all 3 roles · ⏸ STOPPED for human review before P0-T6
 - 2026-09-19 · P0-T5 · approved by human; open question (block demoting the last owner) deferred to P6-T2 · next: P0-T6
 - 2026-09-19 · P0-T6 · implemented + committed; 7 audit tests pass · ⏸ awaiting human review · human asked to continue to P0-T7 in the same session
+- 2026-09-19 · P0-T7 · (app) route group shell: sidebar (desktop) + bottom tab bar (phone), sync status placeholder, 5 stub pages; e2e/shell.spec.ts logs in with real TOTP and clicks every nav item on desktop+phone (needs `pnpm db:start`; not run in CI); fixed sign-in → enroll/verify redirect · Vercel preview deploy not done (blocker) · next: human review of P0-T6, then Phase 0 acceptance
