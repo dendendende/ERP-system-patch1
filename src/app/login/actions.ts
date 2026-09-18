@@ -15,8 +15,9 @@ export async function signIn(_prev: LoginState, form: FormData): Promise<LoginSt
   // Same message for every failure so the form doesn't reveal which emails exist.
   if (error) return { error: "That email and password don't match. Try again." };
 
-  // proxy.ts sends the user on to 2FA setup or the code screen.
-  redirect("/login/verify");
+  // 2FA is required: enter the code if a factor exists, otherwise set one up.
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  redirect(aal?.nextLevel === "aal2" ? "/login/verify" : "/login/enroll");
 }
 
 export async function signOut() {
