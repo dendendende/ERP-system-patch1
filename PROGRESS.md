@@ -21,7 +21,7 @@
 
 ## Phase 0 — Setup
 - [x] P0-T1 Initialize project
-- [ ] P0-T2 Design tokens and base components
+- [x] P0-T2 Design tokens and base components
 - [ ] P0-T3 Testing and CI
 - [ ] P0-T4 Supabase and migrations
 - [ ] P0-T5 Auth, 2FA, roles [REVIEW]
@@ -96,3 +96,4 @@
 ## Session notes
 <!-- Newest first. One line per task: date · task id · what happened · next step -->
 - 2026-09-18 · P0-T1 · Next.js 16 + TS strict + pnpm, ESLint/Prettier, scripts, .env.example; build/typecheck pass · next: P0-T2
+- 2026-09-18 · P0-T2 · tokens in globals.css @theme, components in src/components/ui.tsx, formatRupiah/formatRupiahShort in src/lib/money.ts (+tests), showcase at /dev/components · next: P0-T3
