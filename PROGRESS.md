@@ -2,7 +2,7 @@
 
 **Current phase:** 0
 **Current branch:** phase-0-setup
-**Last updated:** 2026-09-18
+**Last updated:** 2026-09-19
 
 ## How to use
 - Tick a task only after its tests pass and it is committed.
@@ -27,7 +27,7 @@
 - [x] P0-T2 Design tokens and base components
 - [x] P0-T3 Testing and CI
 - [x] P0-T4 Supabase and migrations
-- [ ] P0-T5 Auth, 2FA, roles [REVIEW] — ⏸ awaiting review
+- [x] P0-T5 Auth, 2FA, roles [REVIEW]
 - [ ] P0-T6 Audit log [REVIEW]
 - [ ] P0-T7 App shell
 - [ ] Phase 0 acceptance passed → merge
@@ -103,3 +103,4 @@
 - 2026-09-18 · P0-T3 · Vitest (vitest.config.ts), Playwright smoke on desktop+phone (builds + starts on :3100), .github/workflows/ci.yml; all green locally — CI run on GitHub not yet verified (branch not pushed) · next: P0-T4
 - 2026-09-18 · P0-T4 · `pnpm db:start|db:reset|db:types`; migrations in supabase/migrations, DB tests in supabase/tests (pg, rolled back per test, default URL = local :54322); .env.local holds local-only keys · next: P0-T5 [REVIEW]
 - 2026-09-18 · P0-T5 · implemented + committed (e936c96); RLS/route/timeout tests pass; scripted flow verified login→enroll→aal2→role guard for all 3 roles · ⏸ STOPPED for human review before P0-T6
+- 2026-09-19 · P0-T5 · approved by human; open question (block demoting the last owner) deferred to P6-T2 · next: P0-T6
