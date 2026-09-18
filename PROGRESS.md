@@ -19,6 +19,7 @@
 - 2026-09-18 · Role helper is `current_app_role()` (not `current_role()`: CURRENT_ROLE is a reserved SQL keyword). It returns NULL unless the JWT is aal2, so RLS itself enforces 2FA.
 - 2026-09-18 · Session timeout is app-side (proxy `last_active` cookie, SESSION_TIMEOUT_MINUTES, default 30) — works on every Supabase plan.
 - 2026-09-18 · Public sign-up disabled; the owner adds people (P6-T2). `[auth.email] enable_signup` must stay true or email login is disabled entirely.
+- 2026-09-19 · `withAudit()` is implemented in the database, not app code: `select enable_audit('table')` attaches a trigger that writes audit rows in the same transaction; the reason is passed with `set_config('app.audit_reason', ..., true)` inside the RPC doing the write. Every money table must call enable_audit in its migration.
 
 ---
 
@@ -28,7 +29,7 @@
 - [x] P0-T3 Testing and CI
 - [x] P0-T4 Supabase and migrations
 - [x] P0-T5 Auth, 2FA, roles [REVIEW]
-- [ ] P0-T6 Audit log [REVIEW]
+- [ ] P0-T6 Audit log [REVIEW] — ⏸ awaiting review
 - [ ] P0-T7 App shell
 - [ ] Phase 0 acceptance passed → merge
 
@@ -104,3 +105,4 @@
 - 2026-09-18 · P0-T4 · `pnpm db:start|db:reset|db:types`; migrations in supabase/migrations, DB tests in supabase/tests (pg, rolled back per test, default URL = local :54322); .env.local holds local-only keys · next: P0-T5 [REVIEW]
 - 2026-09-18 · P0-T5 · implemented + committed (e936c96); RLS/route/timeout tests pass; scripted flow verified login→enroll→aal2→role guard for all 3 roles · ⏸ STOPPED for human review before P0-T6
 - 2026-09-19 · P0-T5 · approved by human; open question (block demoting the last owner) deferred to P6-T2 · next: P0-T6
+- 2026-09-19 · P0-T6 · implemented + committed; 7 audit tests pass · ⏸ awaiting human review · human asked to continue to P0-T7 in the same session
