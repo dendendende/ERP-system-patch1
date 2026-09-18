@@ -2,7 +2,7 @@
 
 **Current phase:** 0
 **Current branch:** phase-0-setup
-**Last updated:** (Claude Code updates this after every task)
+**Last updated:** 2026-09-18
 
 ## How to use
 - Tick a task only after its tests pass and it is committed.
@@ -11,15 +11,16 @@
 - If interrupted mid-task, the next session starts by running `git status` and resuming that task.
 
 ## Blockers
-- (none yet — e.g. "P1-T4 blocked: aggregator sandbox key not provided")
+- (none)
 
 ## Decisions log
-- (record any decision made during the build, with date)
+- 2026-09-18 · Next.js 16 scaffold: `typecheck` runs `next typegen` first (route types like `LayoutProps` are generated). Next 16 renamed `middleware` → `proxy`.
+- 2026-09-18 · Vitest installed in P0-T1 so `pnpm test` works from the first task; P0-T3 adds Playwright + CI.
 
 ---
 
 ## Phase 0 — Setup
-- [ ] P0-T1 Initialize project
+- [x] P0-T1 Initialize project
 - [ ] P0-T2 Design tokens and base components
 - [ ] P0-T3 Testing and CI
 - [ ] P0-T4 Supabase and migrations
@@ -94,3 +95,4 @@
 
 ## Session notes
 <!-- Newest first. One line per task: date · task id · what happened · next step -->
+- 2026-09-18 · P0-T1 · Next.js 16 + TS strict + pnpm, ESLint/Prettier, scripts, .env.example; build/typecheck pass · next: P0-T2
