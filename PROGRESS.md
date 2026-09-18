@@ -29,7 +29,7 @@
 - [x] P0-T3 Testing and CI
 - [x] P0-T4 Supabase and migrations
 - [x] P0-T5 Auth, 2FA, roles [REVIEW]
-- [ ] P0-T6 Audit log [REVIEW] — ⏸ awaiting review
+- [x] P0-T6 Audit log [REVIEW]
 - [x] P0-T7 App shell
 - [ ] Phase 0 acceptance passed → merge
 
@@ -107,3 +107,4 @@
 - 2026-09-19 · P0-T5 · approved by human; open question (block demoting the last owner) deferred to P6-T2 · next: P0-T6
 - 2026-09-19 · P0-T6 · implemented + committed; 7 audit tests pass · ⏸ awaiting human review · human asked to continue to P0-T7 in the same session
 - 2026-09-19 · P0-T7 · (app) route group shell: sidebar (desktop) + bottom tab bar (phone), sync status placeholder, 5 stub pages; e2e/shell.spec.ts logs in with real TOTP and clicks every nav item on desktop+phone (needs `pnpm db:start`; not run in CI); fixed sign-in → enroll/verify redirect · Vercel preview deploy not done (blocker) · next: human review of P0-T6, then Phase 0 acceptance
+- 2026-09-19 · P0-T6 · approved by human · next: Phase 0 acceptance (blocked on push + staging Supabase/Vercel), then Phase 1 on branch phase-1-bank-data
