@@ -23,7 +23,7 @@
 - [x] P0-T1 Initialize project
 - [x] P0-T2 Design tokens and base components
 - [x] P0-T3 Testing and CI
-- [ ] P0-T4 Supabase and migrations
+- [x] P0-T4 Supabase and migrations
 - [ ] P0-T5 Auth, 2FA, roles [REVIEW]
 - [ ] P0-T6 Audit log [REVIEW]
 - [ ] P0-T7 App shell
@@ -98,3 +98,4 @@
 - 2026-09-18 · P0-T1 · Next.js 16 + TS strict + pnpm, ESLint/Prettier, scripts, .env.example; build/typecheck pass · next: P0-T2
 - 2026-09-18 · P0-T2 · tokens in globals.css @theme, components in src/components/ui.tsx, formatRupiah/formatRupiahShort in src/lib/money.ts (+tests), showcase at /dev/components · next: P0-T3
 - 2026-09-18 · P0-T3 · Vitest (vitest.config.ts), Playwright smoke on desktop+phone (builds + starts on :3100), .github/workflows/ci.yml; all green locally — CI run on GitHub not yet verified (branch not pushed) · next: P0-T4
+- 2026-09-18 · P0-T4 · `pnpm db:start|db:reset|db:types`; migrations in supabase/migrations, DB tests in supabase/tests (pg, rolled back per test, default URL = local :54322); .env.local holds local-only keys · next: P0-T5 [REVIEW]
