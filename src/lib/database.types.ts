@@ -34,6 +34,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: number
+          new_value: Json | null
+          old_value: Json | null
+          reason: string | null
+          record_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: never
+          new_value?: Json | null
+          old_value?: Json | null
+          reason?: string | null
+          record_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: never
+          new_value?: Json | null
+          old_value?: Json | null
+          reason?: string | null
+          record_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           created_at: string
@@ -64,6 +100,7 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      enable_audit: { Args: { target: unknown }; Returns: undefined }
       jakarta_today: { Args: never; Returns: string }
     }
     Enums: {
