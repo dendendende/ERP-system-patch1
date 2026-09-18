@@ -17,4 +17,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
+      # Postgres only (migrations + seed applied); DB tests run against it.
+      - run: pnpm exec supabase db start
       - run: pnpm test

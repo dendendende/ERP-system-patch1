@@ -1,0 +1,2 @@
+-- Fake development data only. Never real customers, accounts, or bank data.
+-- Tables add their seed rows here as later tasks create them.
