@@ -13,7 +13,7 @@ test("navigation reaches every section", async ({ page }, testInfo) => {
   // Separate users so the parallel desktop and phone runs never share 2FA state.
   await signIn(
     page,
-    testInfo.project.name === "phone" ? "operator@example.test" : "owner@example.test",
+    testInfo.project.name === "phone" ? "e2e-operator@example.test" : "e2e-owner@example.test",
   );
   await expect(page.getByRole("heading", { level: 1, name: "Home" })).toBeVisible();
 

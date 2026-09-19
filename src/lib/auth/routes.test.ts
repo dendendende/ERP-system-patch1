@@ -10,6 +10,11 @@ describe("route roles", () => {
     expect(canAccess("owner", "/settings/team")).toBe(true);
   });
 
+  it("viewers cannot import statements", () => {
+    expect(canAccess("viewer", "/money/import")).toBe(false);
+    expect(canAccess("operator", "/money/import")).toBe(true);
+  });
+
   it("everyone signed in can open normal pages", () => {
     for (const role of ["owner", "operator", "viewer"] as const) {
       expect(canAccess(role, "/")).toBe(true);

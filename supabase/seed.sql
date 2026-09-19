@@ -1,7 +1,8 @@
 -- Fake development data only. Never real customers, accounts, or bank data.
 
 -- Team: one user per role. Local password for all: Local-dev-pass1
--- Each enrols TOTP 2FA on first login.
+-- Each enrols TOTP 2FA on first login. e2e-* users belong to the Playwright tests (they reset
+-- their 2FA every run), so the demo users above keep your phone setup.
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
@@ -15,7 +16,9 @@ select
 from (values
   ('00000000-0000-4000-8000-000000000001'::uuid, 'owner@example.test', 'Olivia Owner'),
   ('00000000-0000-4000-8000-000000000002'::uuid, 'operator@example.test', 'Oscar Operator'),
-  ('00000000-0000-4000-8000-000000000003'::uuid, 'viewer@example.test', 'Vera Viewer')
+  ('00000000-0000-4000-8000-000000000003'::uuid, 'viewer@example.test', 'Vera Viewer'),
+  ('00000000-0000-4000-8000-0000000000e1'::uuid, 'e2e-owner@example.test', 'E2E Owner'),
+  ('00000000-0000-4000-8000-0000000000e2'::uuid, 'e2e-operator@example.test', 'E2E Operator')
 ) as u (id, email, name);
 
 insert into auth.identities (id, user_id, provider_id, identity_data, provider, created_at, updated_at)
@@ -25,6 +28,8 @@ from auth.users;
 
 update public.users set role = 'owner' where id = '00000000-0000-4000-8000-000000000001';
 update public.users set role = 'operator' where id = '00000000-0000-4000-8000-000000000002';
+update public.users set role = 'owner' where id = '00000000-0000-4000-8000-0000000000e1';
+update public.users set role = 'operator' where id = '00000000-0000-4000-8000-0000000000e2';
 
 -- Bank accounts (fake). Transactions come from the mock adapter / CSV import later.
 insert into public.bank_accounts (id, bank_name, account_name, account_last4, source) values
