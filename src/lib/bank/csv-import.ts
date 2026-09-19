@@ -2,9 +2,7 @@
 // Pure (no DB), so it is fully unit-tested. Money stays bigint end to end.
 import { createHash } from "node:crypto";
 
-export { TEMPLATE_CSV } from "./template";
-
-export type ParsedTx = {
+export type BankTx = {
   externalId: string;
   occurredAt: string; // ISO timestamp, Asia/Jakarta midnight of the statement date
   amount: bigint; // > 0
@@ -101,13 +99,13 @@ export function parseTemplateCsv(accountId: string, text: string) {
   const missing = REQUIRED_COLUMNS.filter((h) => !cols.includes(h));
   if (missing.length) {
     return {
-      transactions: [] as ParsedTx[],
+      transactions: [] as BankTx[],
       errors: [{ line: 1, message: `Missing column(s): ${missing.join(", ")}` }],
     };
   }
   const at = (row: string[], name: string) => row[cols.indexOf(name)]?.trim() ?? "";
 
-  const transactions: ParsedTx[] = [];
+  const transactions: BankTx[] = [];
   const errors: RowError[] = [];
   const seen = new Map<string, number>();
 

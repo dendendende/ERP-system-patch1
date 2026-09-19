@@ -1,6 +1,7 @@
 // Fake bank for development and tests. Deterministic: the same account and day always produce
 // the same transactions and ids, like a real bank feed re-read on every sync.
-import { type BankAccountRef, type BankSourceAdapter, type BankTx, jakartaDay } from "./adapter";
+import { type BankAccountRef, type BankSourceAdapter, jakartaDay } from "./adapter";
+import type { BankTx } from "./csv-import";
 
 const EPOCH = "2026-01-01";
 const OPENING_BALANCE = 250_000_000n;

@@ -1,6 +1,5 @@
-import type { ParsedTx } from "./csv-import";
+import type { BankTx } from "./csv-import";
 
-export type BankTx = ParsedTx;
 export type BankAccountRef = { id: string; bank_name: string; account_last4: string };
 
 /** A read-only source of bank data (aggregator API, or the mock). Never moves money. */

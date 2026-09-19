@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { parseTemplateCsv, type RowError } from "@/lib/bank/csv-import";
+import { toBatchRows } from "@/lib/bank/sync";
+import type { TablesInsert } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
 
 export type ImportState = {
   error?: string;
   preview?: {
     fileName: string;
-    total: number;
     fresh: number;
     duplicates: number;
     errors: RowError[];
@@ -55,7 +56,6 @@ export async function importStatement(_prev: ImportState, form: FormData): Promi
   const fresh = transactions.filter((t) => !existing.has(t.externalId));
   const preview = {
     fileName: file.name,
-    total: transactions.length,
     fresh: fresh.length,
     duplicates: transactions.length - fresh.length,
     errors,
@@ -67,27 +67,14 @@ export async function importStatement(_prev: ImportState, form: FormData): Promi
   // One request = one statement = all rows or none. ON CONFLICT DO NOTHING keeps it idempotent
   // if two people import the same file at once.
   const { error } = await supabase.from("bank_transactions").upsert(
-    fresh.map((t) => ({
+    // amounts travel as strings so values above 2^53 stay exact; Postgres casts them
+    toBatchRows(fresh).map((r) => ({
+      ...r,
       bank_account_id: account.id,
-      external_id: t.externalId,
-      occurred_at: t.occurredAt,
-      // bigint travels as a string so amounts above 2^53 stay exact; Postgres casts it.
-      amount: t.amount.toString() as unknown as number,
-      direction: t.direction,
-      description_raw: t.description,
-      balance_after: (t.balanceAfter?.toString() ?? null) as unknown as number | null,
-    })),
+    })) as unknown as TablesInsert<"bank_transactions">[],
     { onConflict: "bank_account_id,external_id", ignoreDuplicates: true },
   );
-  if (error) {
-    return {
-      preview,
-      error:
-        error.code === "42501"
-          ? "You don't have permission to import."
-          : "Import failed. Nothing was saved.",
-    };
-  }
+  if (error) return { preview, error: "Import failed. Nothing was saved." };
 
   revalidatePath("/money");
   return { imported: fresh.length };

@@ -49,7 +49,8 @@ create policy bank_accounts_owner_update on public.bank_accounts
 select public.enable_audit('public.bank_accounts');
 
 -- bank_transactions: whole team reads; owner/operator can insert (CSV import). The sync job
--- uses service_role. Nobody can UPDATE or DELETE — no privilege, and a trigger for everyone else.
+-- uses service_role. Nobody can UPDATE or DELETE — no privilege, and forbid_change() for everyone
+-- else. Corrections go in `entries`.
 revoke all on public.bank_transactions from anon, authenticated, service_role;
 grant select, insert on public.bank_transactions to authenticated, service_role;
 
@@ -59,20 +60,10 @@ create policy bank_transactions_insert on public.bank_transactions
   for insert to authenticated
   with check (public.current_app_role() in ('owner', 'operator'));
 
-create or replace function public.bank_transactions_immutable()
-returns trigger
-language plpgsql
-as $$
-begin
-  raise exception 'bank_transactions are immutable (% not allowed); correct the entry instead', tg_op
-    using errcode = 'insufficient_privilege';
-end;
-$$;
-
 create trigger bank_transactions_no_update_delete
   before update or delete on public.bank_transactions
-  for each row execute function public.bank_transactions_immutable();
+  for each row execute function public.forbid_change();
 
 create trigger bank_transactions_no_truncate
   before truncate on public.bank_transactions
-  for each statement execute function public.bank_transactions_immutable();
+  for each statement execute function public.forbid_change();

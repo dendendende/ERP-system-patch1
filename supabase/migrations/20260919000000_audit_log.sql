@@ -32,23 +32,24 @@ create policy audit_log_select on public.audit_log
   using (public.current_app_role() is not null);
 
 -- Insert-only, even for roles that bypass RLS or hold table privileges.
-create or replace function public.audit_log_immutable()
+-- Shared by every insert-only table (audit_log, bank_transactions).
+create or replace function public.forbid_change()
 returns trigger
 language plpgsql
 as $$
 begin
-  raise exception 'audit_log is insert-only (% not allowed)', tg_op
+  raise exception '% is insert-only (% not allowed)', tg_table_name, tg_op
     using errcode = 'insufficient_privilege';
 end;
 $$;
 
 create trigger audit_log_no_update_delete
   before update or delete on public.audit_log
-  for each row execute function public.audit_log_immutable();
+  for each row execute function public.forbid_change();
 
 create trigger audit_log_no_truncate
   before truncate on public.audit_log
-  for each statement execute function public.audit_log_immutable();
+  for each statement execute function public.forbid_change();
 
 -- Writes one audit row per changed row.
 --   insert: new_value = full row      update: old/new = only the changed columns

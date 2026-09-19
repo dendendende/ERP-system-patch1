@@ -1,6 +1,7 @@
 // Sync job: for each account, fetch → save the batch atomically (sync_bank_batch) → next.
 // Safe to run any number of times: the save skips known external_ids.
-import type { BankAccountRef, BankSourceAdapter, BankTx } from "./adapter";
+import type { BankAccountRef, BankSourceAdapter } from "./adapter";
+import type { BankTx } from "./csv-import";
 
 const DAY = 86_400_000;
 export const FIRST_SYNC_DAYS = 30;
@@ -28,18 +29,14 @@ export function toBatchRows(txs: BankTx[]) {
 
 export async function withRetry<T>(
   fn: () => Promise<T>,
-  {
-    attempts = 3,
-    baseMs = 500,
-    sleep = (ms: number) => new Promise((r) => setTimeout(r, ms)),
-  } = {},
+  { attempts = 3, baseMs = 500 } = {},
 ): Promise<T> {
   for (let i = 1; ; i++) {
     try {
       return await fn();
     } catch (e) {
       if (i >= attempts) throw e;
-      await sleep(baseMs * 2 ** (i - 1)); // 500ms, 1s, 2s…
+      await new Promise((r) => setTimeout(r, baseMs * 2 ** (i - 1))); // 500ms, 1s, 2s…
     }
   }
 }

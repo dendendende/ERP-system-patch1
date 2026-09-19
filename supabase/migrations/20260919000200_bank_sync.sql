@@ -43,50 +43,13 @@ revoke all on function public.sync_bank_batch(uuid, jsonb, timestamptz) from pub
 grant execute on function public.sync_bank_batch(uuid, jsonb, timestamptz) to service_role;
 
 -- Audit: the sync stamps last_synced_at every run; that is bookkeeping, not a money change.
--- Columns passed as trigger arguments are ignored when diffing updates (an update that only
--- touches ignored columns writes no audit row).
-create or replace function public.audit_row_change()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  old_row jsonb := case when tg_op in ('UPDATE', 'DELETE') then to_jsonb(old) end;
-  new_row jsonb := case when tg_op in ('INSERT', 'UPDATE') then to_jsonb(new) end;
-  old_diff jsonb;
-  new_diff jsonb;
-begin
-  if tg_op = 'UPDATE' then
-    select jsonb_object_agg(n.key, o.value), jsonb_object_agg(n.key, n.value)
-      into old_diff, new_diff
-      from jsonb_each(new_row) n
-      join jsonb_each(old_row) o using (key)
-     where n.value is distinct from o.value
-       and not (n.key = any (coalesce(tg_argv, '{}'::text[])));
-    if new_diff is null then
-      return null;
-    end if;
-  else
-    old_diff := old_row;
-    new_diff := new_row;
-  end if;
-
-  insert into public.audit_log (actor_id, action, table_name, record_id, old_value, new_value, reason)
-  values (
-    auth.uid(),
-    lower(tg_op),
-    tg_table_name,
-    coalesce(new_row, old_row) ->> 'id',
-    old_diff,
-    new_diff,
-    nullif(current_setting('app.audit_reason', true), '')
-  );
-  return null;
-end;
-$$;
-
+-- Updates that change nothing else are not audited.
 drop trigger audit_row_change on public.bank_accounts;
 create trigger audit_row_change
-  after insert or update or delete on public.bank_accounts
-  for each row execute function public.audit_row_change('last_synced_at');
+  after insert or delete on public.bank_accounts
+  for each row execute function public.audit_row_change();
+create trigger audit_row_change_update
+  after update on public.bank_accounts
+  for each row
+  when ((to_jsonb(old) - 'last_synced_at') is distinct from (to_jsonb(new) - 'last_synced_at'))
+  execute function public.audit_row_change();

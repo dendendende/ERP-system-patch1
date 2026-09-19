@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseCsv, parseRupiah, parseTemplateCsv, TEMPLATE_CSV } from "./csv-import";
+import { parseCsv, parseRupiah, parseTemplateCsv } from "./csv-import";
+import { TEMPLATE_CSV } from "./template";
 
 const ACC = "00000000-0000-4000-8000-0000000000b1";
 

@@ -3,7 +3,7 @@ import type { BankSourceAdapter } from "./adapter";
 import { MockAdapter } from "./mock-adapter";
 import { runSync, syncSince, withRetry } from "./sync";
 
-const noSleep = { baseMs: 1, sleep: async () => {} };
+const noSleep = { baseMs: 0 };
 const account = (id: string, last_synced_at: string | null = null) => ({
   id,
   bank_name: "Mandiri",
@@ -13,16 +13,22 @@ const account = (id: string, last_synced_at: string | null = null) => ({
 
 describe("withRetry", () => {
   it("retries with exponential backoff, then succeeds", async () => {
-    const sleeps: number[] = [];
+    vi.useFakeTimers();
     const fn = vi
       .fn()
       .mockRejectedValueOnce(new Error("503"))
       .mockRejectedValueOnce(new Error("503"))
       .mockResolvedValue("ok");
-    await expect(
-      withRetry(fn, { baseMs: 500, sleep: async (ms) => void sleeps.push(ms) }),
-    ).resolves.toBe("ok");
-    expect(sleeps).toEqual([500, 1000]);
+    const result = withRetry(fn, { baseMs: 500 });
+    await vi.advanceTimersByTimeAsync(499);
+    expect(fn).toHaveBeenCalledTimes(1); // still waiting 500ms
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fn).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(999);
+    expect(fn).toHaveBeenCalledTimes(2); // second wait is 1000ms
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(result).resolves.toBe("ok");
+    vi.useRealTimers();
   });
 
   it("gives up after the last attempt", async () => {
