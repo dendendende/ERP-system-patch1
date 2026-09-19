@@ -40,7 +40,7 @@
 - [x] P1-T1 Bank tables [REVIEW]
 - [x] P1-T2a CSV import: template format, external_id, preview, idempotent import
 - [ ] P1-T2b CSV parsers per bank (blocked: needs sample statements)
-- [ ] P1-T3 Sync engine with adapter interface [REVIEW]
+- [ ] P1-T3 Sync engine with adapter interface [REVIEW] — ⏸ awaiting review
 - [ ] P1-T4 Real aggregator adapter
 - [ ] P1-T5 Categories
 - [ ] P1-T6 Entries and rules engine [REVIEW]
@@ -115,3 +115,4 @@
 - 2026-09-19 · P1-T1 · bank tables + 10 DB tests (36 total pass); applied locally with `supabase migration up` (no reset, keeps local 2FA) · ⏸ STOPPED for human review
 - 2026-09-19 · P1-T1 · approved by human · P1-T2 split into T2a (template CSV pipeline) + T2b (per-bank parsers, blocked on samples)
 - 2026-09-19 · P1-T2a · template CSV import at /money/import; 24 parser unit tests + 2 e2e (idempotent re-import, bad-row rejection) · next: P1-T2b blocked on samples → P1-T3 [REVIEW]
+- 2026-09-19 · P1-T3 · sync engine + mock adapter + cron route; 73 tests pass; live check: 1st cron call inserted 58 mock tx, 2nd inserted 0; "trigger classification" deferred to P1-T6 (entries created there) · ⏸ STOPPED for human review
