@@ -59,6 +59,13 @@ with real data removed.
 - All entry changes go through `withAudit()`.
 - **Done when:** unit tests cover priority, no-match, own-transfer detection, and re-running is safe.
 
+### P1-T6a — Entries, rules, engine **[REVIEW]**
+- entries + rules tables; every new bank transaction gets an entry in the same DB transaction (trigger);
+  highest-priority matching rule wins; no match → needs_label; apply_rules_to_unlabelled() is safe to re-run.
+
+### P1-T6b — Own-transfer detection **[REVIEW]**
+- Out on one own account + in on another, same amount, within a day → both labelled "Transfer between own accounts".
+
 ### P1-T7 — Money in & out screen
 - List with filters (All, Money in, Money out, Matched to invoices), date range, search.
 - Amounts: green with `+` for in, ink with `−` for out, tabular numbers.

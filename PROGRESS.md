@@ -44,7 +44,8 @@
 - [x] P1-T3 Sync engine with adapter interface [REVIEW]
 - [ ] P1-T4 Real aggregator adapter — BLOCKED (no sandbox key)
 - [x] P1-T5 Categories
-- [ ] P1-T6 Entries and rules engine [REVIEW]
+- [ ] P1-T6a Entries, rules, engine [REVIEW]
+- [ ] P1-T6b Own-transfer detection [REVIEW]
 - [ ] P1-T7 Money in & out screen
 - [ ] P1-T8 Needs-label inbox
 - [ ] P1-T9 Transaction detail
