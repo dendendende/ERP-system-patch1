@@ -144,6 +144,30 @@ export type Database = {
           },
         ]
       }
+      categories: {
+        Row: {
+          id: string
+          is_system: boolean
+          name: string
+          report_group: string
+          type: string
+        }
+        Insert: {
+          id?: string
+          is_system?: boolean
+          name: string
+          report_group: string
+          type: string
+        }
+        Update: {
+          id?: string
+          is_system?: boolean
+          name?: string
+          report_group?: string
+          type?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           created_at: string
