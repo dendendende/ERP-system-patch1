@@ -122,3 +122,4 @@
 - 2026-09-19 · review cleanup · ponytail review cuts applied; migrations edited in place (branch never deployed) and local DB reset, demo 2FA restored; 73 unit/DB + 6 e2e pass · next: P1-T4 (needs aggregator sandbox key)
 - 2026-09-19 · P1-T4 · BLOCKED on aggregator sandbox key (human confirmed) · next: P1-T5
 - 2026-09-19 · P1-T5 · categories table + 15 built-ins in migration, 5 DB tests (78 total pass); screen comes in P1-T11 · next: P1-T6 [REVIEW]
+- 2026-09-19 · P1-T6a · entries + rules engine in DB, 12 new DB tests (90 total) · committed, review together with P1-T6b · next: P1-T6b
