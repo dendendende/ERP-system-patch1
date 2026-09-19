@@ -70,6 +70,80 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_accounts: {
+        Row: {
+          account_last4: string
+          account_name: string
+          bank_name: string
+          id: string
+          is_active: boolean
+          last_synced_at: string | null
+          source: string
+        }
+        Insert: {
+          account_last4: string
+          account_name: string
+          bank_name: string
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          source: string
+        }
+        Update: {
+          account_last4?: string
+          account_name?: string
+          bank_name?: string
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
+      bank_transactions: {
+        Row: {
+          amount: number
+          balance_after: number | null
+          bank_account_id: string
+          created_at: string
+          description_raw: string
+          direction: string
+          external_id: string
+          id: string
+          occurred_at: string
+        }
+        Insert: {
+          amount: number
+          balance_after?: number | null
+          bank_account_id: string
+          created_at?: string
+          description_raw?: string
+          direction: string
+          external_id: string
+          id?: string
+          occurred_at: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number | null
+          bank_account_id?: string
+          created_at?: string
+          description_raw?: string
+          direction?: string
+          external_id?: string
+          id?: string
+          occurred_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string

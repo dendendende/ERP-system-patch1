@@ -25,3 +25,8 @@ from auth.users;
 
 update public.users set role = 'owner' where id = '00000000-0000-4000-8000-000000000001';
 update public.users set role = 'operator' where id = '00000000-0000-4000-8000-000000000002';
+
+-- Bank accounts (fake). Transactions come from the mock adapter / CSV import later.
+insert into public.bank_accounts (id, bank_name, account_name, account_last4, source) values
+  ('00000000-0000-4000-8000-0000000000b1', 'BCA', 'PT Contoh Operasional', '1234', 'csv'),
+  ('00000000-0000-4000-8000-0000000000b2', 'Mandiri', 'PT Contoh Payroll', '5678', 'aggregator');
