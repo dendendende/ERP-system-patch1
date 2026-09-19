@@ -34,7 +34,7 @@
 - [x] Phase 0 acceptance passed → merge (human approved 2026-09-19; CI-on-GitHub + Vercel preview still pending — see Blockers; not merged to main yet)
 
 ## Phase 1 — Bank data
-- [ ] P1-T1 Bank tables [REVIEW]
+- [ ] P1-T1 Bank tables [REVIEW] — ⏸ awaiting review
 - [ ] P1-T2 CSV import
 - [ ] P1-T3 Sync engine with adapter interface [REVIEW]
 - [ ] P1-T4 Real aggregator adapter
@@ -108,3 +108,4 @@
 - 2026-09-19 · P0-T6 · implemented + committed; 7 audit tests pass · ⏸ awaiting human review · human asked to continue to P0-T7 in the same session
 - 2026-09-19 · P0-T7 · (app) route group shell: sidebar (desktop) + bottom tab bar (phone), sync status placeholder, 5 stub pages; e2e/shell.spec.ts logs in with real TOTP and clicks every nav item on desktop+phone (needs `pnpm db:start`; not run in CI); fixed sign-in → enroll/verify redirect · Vercel preview deploy not done (blocker) · next: human review of P0-T6, then Phase 0 acceptance
 - 2026-09-19 · P0-T6 · approved by human · next: Phase 0 acceptance (blocked on push + staging Supabase/Vercel), then Phase 1 on branch phase-1-bank-data
+- 2026-09-19 · P1-T1 · bank tables + 10 DB tests (36 total pass); applied locally with `supabase migration up` (no reset, keeps local 2FA) · ⏸ STOPPED for human review
