@@ -11,6 +11,7 @@
 - If interrupted mid-task, the next session starts by running `git status` and resuming that task.
 
 ## Blockers
+- P1-T4 blocked: need the bank aggregator choice + sandbox API key (and webhook secret if it uses webhooks). Sync works with BANK_ADAPTER=mock meanwhile; the real adapter only has to implement BankSourceAdapter in src/lib/bank/adapter.ts.
 - P1-T2b blocked: need sample CSV statements (real data removed) from each bank the business uses. P1-T2a ships a documented template CSV meanwhile.
 - P0-T3 / P0-T7 / Phase 0 acceptance: "CI green", "deploy to Vercel preview" and "login with 2FA on preview" need the human: push the branch, and provide the staging Supabase project + Vercel project (set NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY / SESSION_TIMEOUT_MINUTES in Vercel). Local equivalents all pass.
 
@@ -41,7 +42,7 @@
 - [x] P1-T2a CSV import: template format, external_id, preview, idempotent import
 - [ ] P1-T2b CSV parsers per bank (blocked: needs sample statements)
 - [x] P1-T3 Sync engine with adapter interface [REVIEW]
-- [ ] P1-T4 Real aggregator adapter
+- [ ] P1-T4 Real aggregator adapter — BLOCKED (no sandbox key)
 - [ ] P1-T5 Categories
 - [ ] P1-T6 Entries and rules engine [REVIEW]
 - [ ] P1-T7 Money in & out screen
@@ -118,3 +119,4 @@
 - 2026-09-19 · P1-T3 · sync engine + mock adapter + cron route; 73 tests pass; live check: 1st cron call inserted 58 mock tx, 2nd inserted 0; "trigger classification" deferred to P1-T6 (entries created there) · ⏸ STOPPED for human review
 - 2026-09-19 · P1-T3 · approved by human
 - 2026-09-19 · review cleanup · ponytail review cuts applied; migrations edited in place (branch never deployed) and local DB reset, demo 2FA restored; 73 unit/DB + 6 e2e pass · next: P1-T4 (needs aggregator sandbox key)
+- 2026-09-19 · P1-T4 · BLOCKED on aggregator sandbox key (human confirmed) · next: P1-T5
