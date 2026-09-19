@@ -117,3 +117,4 @@
 - 2026-09-19 · P1-T2a · template CSV import at /money/import; 24 parser unit tests + 2 e2e (idempotent re-import, bad-row rejection) · next: P1-T2b blocked on samples → P1-T3 [REVIEW]
 - 2026-09-19 · P1-T3 · sync engine + mock adapter + cron route; 73 tests pass; live check: 1st cron call inserted 58 mock tx, 2nd inserted 0; "trigger classification" deferred to P1-T6 (entries created there) · ⏸ STOPPED for human review
 - 2026-09-19 · P1-T3 · approved by human
+- 2026-09-19 · review cleanup · ponytail review cuts applied; migrations edited in place (branch never deployed) and local DB reset, demo 2FA restored; 73 unit/DB + 6 e2e pass · next: P1-T4 (needs aggregator sandbox key)
