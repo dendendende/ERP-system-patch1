@@ -1,7 +1,7 @@
 # PROGRESS
 
-**Current phase:** 0
-**Current branch:** phase-0-setup
+**Current phase:** 1
+**Current branch:** phase-1-bank-data (branched from phase-0-setup)
 **Last updated:** 2026-09-19
 
 ## How to use
@@ -31,7 +31,7 @@
 - [x] P0-T5 Auth, 2FA, roles [REVIEW]
 - [x] P0-T6 Audit log [REVIEW]
 - [x] P0-T7 App shell
-- [ ] Phase 0 acceptance passed → merge
+- [x] Phase 0 acceptance passed → merge (human approved 2026-09-19; CI-on-GitHub + Vercel preview still pending — see Blockers; not merged to main yet)
 
 ## Phase 1 — Bank data
 - [ ] P1-T1 Bank tables [REVIEW]
