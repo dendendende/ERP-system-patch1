@@ -21,6 +21,8 @@
 - 2026-09-18 · Session timeout is app-side (proxy `last_active` cookie, SESSION_TIMEOUT_MINUTES, default 30) — works on every Supabase plan.
 - 2026-09-18 · Public sign-up disabled; the owner adds people (P6-T2). `[auth.email] enable_signup` must stay true or email login is disabled entirely.
 - 2026-09-19 · `withAudit()` is implemented in the database, not app code: `select enable_audit('table')` attaches a trigger that writes audit rows in the same transaction; the reason is passed with `set_config('app.audit_reason', ..., true)` inside the RPC doing the write. Every money table must call enable_audit in its migration.
+- 2026-09-19 · CSV external_id uses "n-th identical row in the file" instead of "row sequence within the same day": a statement that starts mid-day would shift day sequences and re-import duplicates; identical-row counting stays stable. Statements with any unreadable row are not imported at all.
+- 2026-09-19 · e2e tests use their own seed users (e2e-owner@, e2e-operator@) and run with workers: 1; demo users keep their 2FA.
 
 ---
 
@@ -36,7 +38,7 @@
 
 ## Phase 1 — Bank data
 - [x] P1-T1 Bank tables [REVIEW]
-- [ ] P1-T2a CSV import: template format, external_id, preview, idempotent import
+- [x] P1-T2a CSV import: template format, external_id, preview, idempotent import
 - [ ] P1-T2b CSV parsers per bank (blocked: needs sample statements)
 - [ ] P1-T3 Sync engine with adapter interface [REVIEW]
 - [ ] P1-T4 Real aggregator adapter
@@ -112,3 +114,4 @@
 - 2026-09-19 · P0-T6 · approved by human · next: Phase 0 acceptance (blocked on push + staging Supabase/Vercel), then Phase 1 on branch phase-1-bank-data
 - 2026-09-19 · P1-T1 · bank tables + 10 DB tests (36 total pass); applied locally with `supabase migration up` (no reset, keeps local 2FA) · ⏸ STOPPED for human review
 - 2026-09-19 · P1-T1 · approved by human · P1-T2 split into T2a (template CSV pipeline) + T2b (per-bank parsers, blocked on samples)
+- 2026-09-19 · P1-T2a · template CSV import at /money/import; 24 parser unit tests + 2 e2e (idempotent re-import, bad-row rejection) · next: P1-T2b blocked on samples → P1-T3 [REVIEW]
