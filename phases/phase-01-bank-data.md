@@ -23,6 +23,13 @@ with real data removed.
 - Preview screen before import: counts, duplicates skipped, errors.
 - **Done when:** importing the same file twice creates zero new rows; parser tests per bank pass.
 
+### P1-T2a — CSV import pipeline (template format)
+- One documented template CSV (date, description, amount, balance) so import works before bank samples arrive.
+- external_id hash, preview (new / duplicates / errors), idempotent import.
+
+### P1-T2b — Parsers per bank
+- One parser per bank format, normalizing to the same shape. **Blocked** until sample statements are provided.
+
 ### P1-T3 — Sync engine with adapter interface **[REVIEW]**
 - `BankSourceAdapter` interface: `fetchTransactions(account, since)`, `fetchBalance(account)`.
 - `MockAdapter` returning realistic fake data.

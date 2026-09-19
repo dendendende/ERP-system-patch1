@@ -11,6 +11,7 @@
 - If interrupted mid-task, the next session starts by running `git status` and resuming that task.
 
 ## Blockers
+- P1-T2b blocked: need sample CSV statements (real data removed) from each bank the business uses. P1-T2a ships a documented template CSV meanwhile.
 - P0-T3 / P0-T7 / Phase 0 acceptance: "CI green", "deploy to Vercel preview" and "login with 2FA on preview" need the human: push the branch, and provide the staging Supabase project + Vercel project (set NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY / SESSION_TIMEOUT_MINUTES in Vercel). Local equivalents all pass.
 
 ## Decisions log
@@ -34,8 +35,9 @@
 - [x] Phase 0 acceptance passed → merge (human approved 2026-09-19; CI-on-GitHub + Vercel preview still pending — see Blockers; not merged to main yet)
 
 ## Phase 1 — Bank data
-- [ ] P1-T1 Bank tables [REVIEW] — ⏸ awaiting review
-- [ ] P1-T2 CSV import
+- [x] P1-T1 Bank tables [REVIEW]
+- [ ] P1-T2a CSV import: template format, external_id, preview, idempotent import
+- [ ] P1-T2b CSV parsers per bank (blocked: needs sample statements)
 - [ ] P1-T3 Sync engine with adapter interface [REVIEW]
 - [ ] P1-T4 Real aggregator adapter
 - [ ] P1-T5 Categories
@@ -109,3 +111,4 @@
 - 2026-09-19 · P0-T7 · (app) route group shell: sidebar (desktop) + bottom tab bar (phone), sync status placeholder, 5 stub pages; e2e/shell.spec.ts logs in with real TOTP and clicks every nav item on desktop+phone (needs `pnpm db:start`; not run in CI); fixed sign-in → enroll/verify redirect · Vercel preview deploy not done (blocker) · next: human review of P0-T6, then Phase 0 acceptance
 - 2026-09-19 · P0-T6 · approved by human · next: Phase 0 acceptance (blocked on push + staging Supabase/Vercel), then Phase 1 on branch phase-1-bank-data
 - 2026-09-19 · P1-T1 · bank tables + 10 DB tests (36 total pass); applied locally with `supabase migration up` (no reset, keeps local 2FA) · ⏸ STOPPED for human review
+- 2026-09-19 · P1-T1 · approved by human · P1-T2 split into T2a (template CSV pipeline) + T2b (per-bank parsers, blocked on samples)
