@@ -168,6 +168,127 @@ export type Database = {
         }
         Relationships: []
       }
+      entries: {
+        Row: {
+          bank_transaction_id: string
+          category_id: string | null
+          customer_id: string | null
+          id: string
+          invoice_id: string | null
+          is_recurring: boolean
+          note: string
+          rule_id: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bank_transaction_id: string
+          category_id?: string | null
+          customer_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          is_recurring?: boolean
+          note?: string
+          rule_id?: string | null
+          status: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bank_transaction_id?: string
+          category_id?: string | null
+          customer_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          is_recurring?: boolean
+          note?: string
+          rule_id?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entries_bank_transaction_id_fkey"
+            columns: ["bank_transaction_id"]
+            isOneToOne: true
+            referencedRelation: "bank_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entries_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entries_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rules: {
+        Row: {
+          category_id: string
+          created_at: string
+          created_from_entry_id: string | null
+          direction: string
+          id: string
+          is_active: boolean
+          is_recurring: boolean
+          match_field: string
+          match_type: string
+          pattern: string
+          priority: number
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          created_from_entry_id?: string | null
+          direction: string
+          id?: string
+          is_active?: boolean
+          is_recurring?: boolean
+          match_field?: string
+          match_type: string
+          pattern: string
+          priority?: number
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          created_from_entry_id?: string | null
+          direction?: string
+          id?: string
+          is_active?: boolean
+          is_recurring?: boolean
+          match_field?: string
+          match_type?: string
+          pattern?: string
+          priority?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rules_category_id_direction_fkey"
+            columns: ["category_id", "direction"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id", "type"]
+          },
+          {
+            foreignKeyName: "rules_created_from_entry_id_fkey"
+            columns: ["created_from_entry_id"]
+            isOneToOne: false
+            referencedRelation: "entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string
@@ -194,12 +315,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_rules_to_unlabelled: { Args: never; Returns: number }
       current_app_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
       enable_audit: { Args: { target: unknown }; Returns: undefined }
       jakarta_today: { Args: never; Returns: string }
+      match_rule: {
+        Args: { p_description: string; p_direction: string }
+        Returns: {
+          category_id: string
+          created_at: string
+          created_from_entry_id: string | null
+          direction: string
+          id: string
+          is_active: boolean
+          is_recurring: boolean
+          match_field: string
+          match_type: string
+          pattern: string
+          priority: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rules"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       sync_bank_batch: {
         Args: { p_account_id: string; p_rows: Json; p_synced_at: string }
         Returns: number

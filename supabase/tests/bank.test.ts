@@ -71,7 +71,7 @@ describe("bank_transactions", () => {
         "delete from bank_transactions",
         "truncate bank_transactions",
       ]) {
-        expect((await tryQuery(db, sql)).error).toMatch(/insert-only/);
+        expect((await tryQuery(db, sql)).error).toMatch(/insert-only|referenced in a foreign key/);
       }
     });
   });
