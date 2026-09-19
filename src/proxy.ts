@@ -7,7 +7,7 @@ const LAST_ACTIVE = "last_active";
 const TIMEOUT_MINUTES = Number(process.env.SESSION_TIMEOUT_MINUTES) || 30;
 
 // Every page needs a signed-in user who passed 2FA. The 2FA screens need a signed-in user
-// who has not passed it yet. /login is the only public page.
+// who has not passed it yet. /login is the only public page; /api/cron/* checks its own secret.
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   const supabase = createServerClient<Database>(
@@ -73,6 +73,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/cron/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

@@ -176,6 +176,10 @@ export type Database = {
       }
       enable_audit: { Args: { target: unknown }; Returns: undefined }
       jakarta_today: { Args: never; Returns: string }
+      sync_bank_batch: {
+        Args: { p_account_id: string; p_rows: Json; p_synced_at: string }
+        Returns: number
+      }
     }
     Enums: {
       app_role: "owner" | "operator" | "viewer"
