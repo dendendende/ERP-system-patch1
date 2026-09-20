@@ -2,7 +2,7 @@
 
 **Current phase:** 1
 **Current branch:** phase-1-bank-data (branched from phase-0-setup)
-**Last updated:** 2026-09-19
+**Last updated:** 2026-09-20
 
 ## How to use
 - Tick a task only after its tests pass and it is committed.
@@ -44,8 +44,8 @@
 - [x] P1-T3 Sync engine with adapter interface [REVIEW]
 - [ ] P1-T4 Real aggregator adapter — BLOCKED (no sandbox key)
 - [x] P1-T5 Categories
-- [ ] P1-T6a Entries, rules, engine [REVIEW] — ⏸ awaiting review
-- [ ] P1-T6b Own-transfer detection [REVIEW] — ⏸ awaiting review
+- [x] P1-T6a Entries, rules, engine [REVIEW]
+- [x] P1-T6b Own-transfer detection [REVIEW]
 - [ ] P1-T7 Money in & out screen
 - [ ] P1-T8 Needs-label inbox
 - [ ] P1-T9 Transaction detail
@@ -124,3 +124,4 @@
 - 2026-09-19 · P1-T5 · categories table + 15 built-ins in migration, 5 DB tests (78 total pass); screen comes in P1-T11 · next: P1-T6 [REVIEW]
 - 2026-09-19 · P1-T6a · entries + rules engine in DB, 12 new DB tests (90 total) · committed, review together with P1-T6b · next: P1-T6b
 - 2026-09-19 · P1-T6b · own-transfer detection in the entry trigger, 5 DB tests (95 total) + 6 e2e pass; clean db reset verified · ⏸ STOPPED for human review of P1-T6a + P1-T6b
+- 2026-09-20 · P1-T6 · approved by human · next: P1-T7 (Money in \& out screen)
