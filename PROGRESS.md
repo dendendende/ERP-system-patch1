@@ -49,7 +49,7 @@
 - [x] P1-T7 Money in & out screen
 - [x] P1-T8 Needs-label inbox
 - [x] P1-T9 Transaction detail
-- [ ] P1-T10 Bank connections screen
+- [x] P1-T10 Bank connections screen
 - [ ] P1-T11 Categories & rules screen
 - [ ] Phase 1 acceptance passed → merge
 
@@ -128,3 +128,4 @@
 - 2026-09-20 · P1-T7 · /money list with filters, search and paging; 10k-row query measured at 0.14ms (index scan, rolled back); search is ILIKE (add a trigram index if it ever slows) · next: P1-T8
 - 2026-09-20 · P1-T8 · inbox + suggestions (pg_trgm) + payee-based rules; 104 unit\/DB and 10 e2e pass · next: P1-T9 (transaction detail)
 - 2026-09-20 · P1-T9 · /money/[id] detail + history; fixed stale select after save (React keeps uncontrolled defaultValue) and hid updated_at/updated_by/rule_id from history · next: P1-T10
+- 2026-09-20 · P1-T10 · /settings/bank + stale alerts (SYNC_STALE_HOURS, default 6) in sidebar and Home; 115 unit\/DB, 14 e2e pass · next: P1-T11 (categories \& rules screen, owner)
