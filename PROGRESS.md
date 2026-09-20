@@ -47,7 +47,7 @@
 - [x] P1-T6a Entries, rules, engine [REVIEW]
 - [x] P1-T6b Own-transfer detection [REVIEW]
 - [x] P1-T7 Money in & out screen
-- [ ] P1-T8 Needs-label inbox
+- [x] P1-T8 Needs-label inbox
 - [ ] P1-T9 Transaction detail
 - [ ] P1-T10 Bank connections screen
 - [ ] P1-T11 Categories & rules screen
@@ -126,3 +126,4 @@
 - 2026-09-19 · P1-T6b · own-transfer detection in the entry trigger, 5 DB tests (95 total) + 6 e2e pass; clean db reset verified · ⏸ STOPPED for human review of P1-T6a + P1-T6b
 - 2026-09-20 · P1-T6 · approved by human · next: P1-T7 (Money in \& out screen)
 - 2026-09-20 · P1-T7 · /money list with filters, search and paging; 10k-row query measured at 0.14ms (index scan, rolled back); search is ILIKE (add a trigram index if it ever slows) · next: P1-T8
+- 2026-09-20 · P1-T8 · inbox + suggestions (pg_trgm) + payee-based rules; 104 unit\/DB and 10 e2e pass · next: P1-T9 (transaction detail)
