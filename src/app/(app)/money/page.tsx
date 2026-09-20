@@ -3,6 +3,7 @@ import { Card, EmptyState, StatusPill, TableRow } from "@/components/ui";
 import { formatRupiah } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { Filters, PAGE_SIZE, jakartaRange, type MoneyFilter } from "./filters";
+import { NeedsLabelInbox } from "./inbox";
 
 export const metadata = { title: "Money in & out · Cashflow" };
 
@@ -67,6 +68,8 @@ export default async function MoneyPage({ searchParams }: PageProps<"/money">) {
         </Link>
       </div>
 
+      <NeedsLabelInbox />
+
       <Filters show={show} from={from} to={to} q={q} />
 
       {error ? (
@@ -77,33 +80,35 @@ export default async function MoneyPage({ searchParams }: PageProps<"/money">) {
             {total.toLocaleString("id-ID")} {total === 1 ? "transaction" : "transactions"}
             {lastPage > 1 ? ` · page ${page} of ${lastPage}` : ""}
           </p>
-          <Card className="p-0">
-            {rows.map((t) => {
-              const entry = t.entries;
-              const isIn = t.direction === "in";
-              const amount = formatRupiah(BigInt(t.amount));
-              return (
-                <TableRow
-                  key={t.id}
-                  primary={t.description_raw}
-                  secondary={`${jakartaDate.format(new Date(t.occurred_at))} · ${t.bank_accounts.bank_name} ••${t.bank_accounts.account_last4}`}
-                  meta={
-                    entry?.status === "needs_label" ? (
-                      <StatusPill tone="attention">Needs label</StatusPill>
-                    ) : entry?.categories ? (
-                      <StatusPill>{entry.categories.name}</StatusPill>
-                    ) : null
-                  }
-                  amount={
-                    <span className={isIn ? "text-in" : undefined}>
-                      {isIn ? "+" : "−"}
-                      {amount.replace("−", "")}
-                    </span>
-                  }
-                />
-              );
-            })}
-          </Card>
+          <section aria-label="Transactions">
+            <Card className="p-0">
+              {rows.map((t) => {
+                const entry = t.entries;
+                const isIn = t.direction === "in";
+                const amount = formatRupiah(BigInt(t.amount));
+                return (
+                  <TableRow
+                    key={t.id}
+                    primary={t.description_raw}
+                    secondary={`${jakartaDate.format(new Date(t.occurred_at))} · ${t.bank_accounts.bank_name} ••${t.bank_accounts.account_last4}`}
+                    meta={
+                      entry?.status === "needs_label" ? (
+                        <StatusPill tone="attention">Needs label</StatusPill>
+                      ) : entry?.categories ? (
+                        <StatusPill>{entry.categories.name}</StatusPill>
+                      ) : null
+                    }
+                    amount={
+                      <span className={isIn ? "text-in" : undefined}>
+                        {isIn ? "+" : "−"}
+                        {amount.replace("−", "")}
+                      </span>
+                    }
+                  />
+                );
+              })}
+            </Card>
+          </section>
           {lastPage > 1 ? (
             <nav className="flex items-center justify-between text-sm" aria-label="Pages">
               {page > 1 ? (

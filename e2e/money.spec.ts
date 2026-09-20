@@ -6,7 +6,8 @@ test("money in & out lists transactions and filters them", async ({ page }, test
   await signIn(page, "e2e-owner@example.test");
   await page.goto("/money");
 
-  const rows = page.locator("main .tabular-nums").filter({ hasText: "Rp" });
+  const list = page.getByRole("region", { name: "Transactions" });
+  const rows = list.locator(".tabular-nums").filter({ hasText: "Rp" });
   // the radios are visually hidden behind their pill labels, so click the label
   const tab = (name: string) =>
     page.getByRole("group", { name: "Show" }).getByText(name, { exact: true });
@@ -31,17 +32,13 @@ test("money in & out lists transactions and filters them", async ({ page }, test
   await tab("All").click();
   await page.getByLabel("Search").fill("BIAYA ADM");
   await page.getByRole("button", { name: "Show" }).click();
-  for (const text of await page.locator("main .truncate.font-medium").allInnerTexts()) {
+  for (const text of await list.locator(".truncate.font-medium").allInnerTexts()) {
     expect(text).toContain("BIAYA ADM");
   }
 
   await page.getByLabel("Search").fill("ZZZ NOTHING");
   await page.getByRole("button", { name: "Show" }).click();
   await expect(page.getByText("Nothing to show")).toBeVisible();
-
-  await page.getByLabel("Search").fill("");
-  await page.getByRole("button", { name: "Show" }).click();
-  await page.screenshot({ path: testInfo.outputPath("money.png"), fullPage: false });
 });
 
 test("paging keeps the current filter", async ({ page }, testInfo) => {

@@ -344,6 +344,26 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      needs_label_inbox: {
+        Args: { p_limit?: number }
+        Returns: {
+          account: string
+          amount: string
+          description: string
+          direction: string
+          entry_id: string
+          occurred_at: string
+          suggestions: Json
+        }[]
+      }
+      suggest_categories: {
+        Args: { p_description: string; p_direction: string }
+        Returns: {
+          category_id: string
+          name: string
+          score: number
+        }[]
+      }
       sync_bank_batch: {
         Args: { p_account_id: string; p_rows: Json; p_synced_at: string }
         Returns: number
