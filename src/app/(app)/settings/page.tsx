@@ -9,6 +9,11 @@ const SECTIONS = [
     "/settings/bank",
     "Where your money data comes from, and whether it is up to date.",
   ],
+  [
+    "Categories & rules",
+    "/settings/categories",
+    "What your money is filed under, and the rules that label it automatically. Owner only.",
+  ],
 ] as const;
 
 export default function SettingsPage() {
