@@ -1,16 +1,25 @@
+import Link from "next/link";
 import { SidebarNav, TabBar } from "@/components/nav";
+import { currentSyncState } from "@/lib/bank/current-sync";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "../login/actions";
 
 const ROLE_LABEL = { owner: "Owner", operator: "Operator", viewer: "Viewer" } as const;
 
-// Placeholder until bank sync exists (P1-T10 fills this in).
-function SyncStatus() {
+const DOT = { neutral: "bg-line", in: "bg-in", attention: "bg-attention" } as const;
+
+async function SyncStatus() {
+  const state = await currentSyncState();
   return (
-    <p className="flex items-center gap-2 text-xs text-muted">
-      <span aria-hidden className="size-1.5 rounded-full bg-line" />
-      Bank not connected yet
-    </p>
+    <Link
+      href="/settings/bank"
+      className={`flex items-center gap-2 text-xs hover:underline underline-offset-4 ${
+        state.stale ? "text-attention-ink" : "text-muted"
+      }`}
+    >
+      <span aria-hidden className={`size-1.5 rounded-full ${DOT[state.tone]}`} />
+      {state.message}
+    </Link>
   );
 }
 
