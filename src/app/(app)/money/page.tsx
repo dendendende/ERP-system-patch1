@@ -89,7 +89,11 @@ export default async function MoneyPage({ searchParams }: PageProps<"/money">) {
                 return (
                   <TableRow
                     key={t.id}
-                    primary={t.description_raw}
+                    primary={
+                      <Link href={`/money/${t.id}`} className="hover:underline underline-offset-4">
+                        {t.description_raw}
+                      </Link>
+                    }
                     secondary={`${jakartaDate.format(new Date(t.occurred_at))} · ${t.bank_accounts.bank_name} ••${t.bank_accounts.account_last4}`}
                     meta={
                       entry?.status === "needs_label" ? (

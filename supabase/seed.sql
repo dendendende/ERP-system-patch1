@@ -18,7 +18,8 @@ from (values
   ('00000000-0000-4000-8000-000000000002'::uuid, 'operator@example.test', 'Oscar Operator'),
   ('00000000-0000-4000-8000-000000000003'::uuid, 'viewer@example.test', 'Vera Viewer'),
   ('00000000-0000-4000-8000-0000000000e1'::uuid, 'e2e-owner@example.test', 'E2E Owner'),
-  ('00000000-0000-4000-8000-0000000000e2'::uuid, 'e2e-operator@example.test', 'E2E Operator')
+  ('00000000-0000-4000-8000-0000000000e2'::uuid, 'e2e-operator@example.test', 'E2E Operator'),
+  ('00000000-0000-4000-8000-0000000000e3'::uuid, 'e2e-viewer@example.test', 'E2E Viewer')
 ) as u (id, email, name);
 
 insert into auth.identities (id, user_id, provider_id, identity_data, provider, created_at, updated_at)
