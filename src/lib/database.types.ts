@@ -278,6 +278,7 @@ export type Database = {
       }
       invoices: {
         Row: {
+          amount_due: number
           base_amount: number
           created_at: string
           created_by: string | null
@@ -295,6 +296,7 @@ export type Database = {
           void_reason: string | null
         }
         Insert: {
+          amount_due: number
           base_amount: number
           created_at?: string
           created_by?: string | null
@@ -312,6 +314,7 @@ export type Database = {
           void_reason?: string | null
         }
         Update: {
+          amount_due?: number
           base_amount?: number
           created_at?: string
           created_by?: string | null
@@ -341,6 +344,51 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount_applied: number
+          bank_transaction_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_id: string
+          method: string
+        }
+        Insert: {
+          amount_applied: number
+          bank_transaction_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id: string
+          method: string
+        }
+        Update: {
+          amount_applied?: number
+          bank_transaction_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id?: string
+          method?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_bank_transaction_id_fkey"
+            columns: ["bank_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "bank_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
         ]
@@ -475,6 +523,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_payment: {
+        Args: {
+          p_amount: number
+          p_bank_transaction_id: string
+          p_invoice_id: string
+          p_method?: string
+        }
+        Returns: {
+          amount_applied: number
+          bank_transaction_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_id: string
+          method: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       apply_rules_to_unlabelled: { Args: never; Returns: number }
       create_invoice: {
         Args: {
@@ -486,6 +557,7 @@ export type Database = {
           p_subscription_id?: string
         }
         Returns: {
+          amount_due: number
           base_amount: number
           created_at: string
           created_by: string | null
@@ -516,6 +588,7 @@ export type Database = {
       enable_audit: { Args: { target: unknown }; Returns: undefined }
       free_unique_code: { Args: { p_base: number }; Returns: number }
       invoice_number: { Args: { n: number }; Returns: string }
+      invoice_paid: { Args: { p_invoice_id: string }; Returns: number }
       jakarta_today: { Args: never; Returns: string }
       lock_unique_amounts: { Args: never; Returns: undefined }
       match_rule: {
@@ -552,6 +625,7 @@ export type Database = {
           suggestions: Json
         }[]
       }
+      refresh_invoice: { Args: { p_invoice_id: string }; Returns: undefined }
       suggest_categories: {
         Args: { p_description: string; p_direction: string }
         Returns: {
@@ -564,9 +638,14 @@ export type Database = {
         Args: { p_account_id: string; p_rows: Json; p_synced_at: string }
         Returns: number
       }
+      transaction_unapplied: {
+        Args: { p_bank_transaction_id: string }
+        Returns: number
+      }
       void_invoice: {
         Args: { p_invoice_id: string; p_reason: string }
         Returns: {
+          amount_due: number
           base_amount: number
           created_at: string
           created_by: string | null
