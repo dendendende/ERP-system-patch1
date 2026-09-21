@@ -57,7 +57,7 @@
 - [x] P2-T1 Customers and subscriptions tables
 - [x] P2-T2 Invoices and unique amounts [REVIEW]
 - [x] P2-T3 Payments and invoice status [REVIEW]
-- [ ] P2-T4 Matching engine [REVIEW]
+- [ ] P2-T4 Matching engine [REVIEW] — ⏸ awaiting review
 - [ ] P2-T5 Auto-invoicing job
 - [ ] P2-T6 Customer list
 - [ ] P2-T7 Customer detail
@@ -135,3 +135,4 @@
 - 2026-09-21 · P2-T2 · approved by human (operators may void, numbering gaps accepted) · next: P2-T3 [REVIEW]
 - 2026-09-21 · P2-T3 · payments + derived invoice status + fresh unique amount for the rest; 139 tests pass · ⏸ STOPPED for human review
 - 2026-09-21 · P2-T3 · approved by human (fresh code added on top for the rest) · next: P2-T4 [REVIEW]
+- 2026-09-21 · P2-T4 · match_payments() after sync + CSV import (3 rules, never guesses when 2+ fit); amount_due now counts only codes actually transferred; mutation check: ambiguity tests fail without the guard; 150 unit/DB + 17 e2e pass · ⏸ STOPPED for human review
