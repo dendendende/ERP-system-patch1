@@ -54,7 +54,7 @@
 - [x] Phase 1 acceptance passed → merge (re-sync/re-import idempotent ✓, bank rows immutable ✓, 95.5% of fake transactions auto-labelled after 11 rules ✓, P1-T1/T3/T6 reviewed ✓; P1-T2b and P1-T4 still blocked, not merged to main yet)
 
 ## Phase 2 — Customers & billing
-- [ ] P2-T1 Customers and subscriptions tables
+- [x] P2-T1 Customers and subscriptions tables
 - [ ] P2-T2 Invoices and unique amounts [REVIEW]
 - [ ] P2-T3 Payments and invoice status [REVIEW]
 - [ ] P2-T4 Matching engine [REVIEW]
@@ -130,3 +130,4 @@
 - 2026-09-20 · P1-T9 · /money/[id] detail + history; fixed stale select after save (React keeps uncontrolled defaultValue) and hid updated_at/updated_by/rule_id from history · next: P1-T10
 - 2026-09-20 · P1-T10 · /settings/bank + stale alerts (SYNC_STALE_HOURS, default 6) in sidebar and Home; 115 unit\/DB, 14 e2e pass · next: P1-T11 (categories \& rules screen, owner)
 - 2026-09-20 · P1-T11 · /settings/categories (owner): rules in plain words with label counts, on/off, category add/remove; acceptance measured: 84/88 entries auto-labelled = 95.5% after 11 demo rules (local data only) · Phase 1 done except blocked P1-T2b/P1-T4
+- 2026-09-21 · P2-T1 · customers + subscriptions (E.164 checked in DB), seed of 5 customers matching the mock payers; 123 tests pass; engine tests now isolated from local demo rules · next: P2-T2 [REVIEW]
