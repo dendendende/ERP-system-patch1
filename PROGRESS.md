@@ -1,8 +1,8 @@
 # PROGRESS
 
-**Current phase:** 1
-**Current branch:** phase-1-bank-data (branched from phase-0-setup)
-**Last updated:** 2026-09-20
+**Current phase:** 2
+**Current branch:** phase-2-billing (branched from phase-1-bank-data)
+**Last updated:** 2026-09-21
 
 ## How to use
 - Tick a task only after its tests pass and it is committed.
