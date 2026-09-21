@@ -56,7 +56,7 @@
 ## Phase 2 — Customers & billing
 - [x] P2-T1 Customers and subscriptions tables
 - [x] P2-T2 Invoices and unique amounts [REVIEW]
-- [ ] P2-T3 Payments and invoice status [REVIEW] — ⏸ awaiting review
+- [x] P2-T3 Payments and invoice status [REVIEW]
 - [ ] P2-T4 Matching engine [REVIEW]
 - [ ] P2-T5 Auto-invoicing job
 - [ ] P2-T6 Customer list
@@ -134,3 +134,4 @@
 - 2026-09-21 · P2-T2 · invoices + unique amounts; concurrency test (40 parallel commits) passes and fails when the lock is removed; 132 tests pass · ⏸ STOPPED for human review
 - 2026-09-21 · P2-T2 · approved by human (operators may void, numbering gaps accepted) · next: P2-T3 [REVIEW]
 - 2026-09-21 · P2-T3 · payments + derived invoice status + fresh unique amount for the rest; 139 tests pass · ⏸ STOPPED for human review
+- 2026-09-21 · P2-T3 · approved by human (fresh code added on top for the rest) · next: P2-T4 [REVIEW]
