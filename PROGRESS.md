@@ -55,7 +55,7 @@
 
 ## Phase 2 — Customers & billing
 - [x] P2-T1 Customers and subscriptions tables
-- [ ] P2-T2 Invoices and unique amounts [REVIEW]
+- [ ] P2-T2 Invoices and unique amounts [REVIEW] — ⏸ awaiting review
 - [ ] P2-T3 Payments and invoice status [REVIEW]
 - [ ] P2-T4 Matching engine [REVIEW]
 - [ ] P2-T5 Auto-invoicing job
@@ -131,3 +131,4 @@
 - 2026-09-20 · P1-T10 · /settings/bank + stale alerts (SYNC_STALE_HOURS, default 6) in sidebar and Home; 115 unit\/DB, 14 e2e pass · next: P1-T11 (categories \& rules screen, owner)
 - 2026-09-20 · P1-T11 · /settings/categories (owner): rules in plain words with label counts, on/off, category add/remove; acceptance measured: 84/88 entries auto-labelled = 95.5% after 11 demo rules (local data only) · Phase 1 done except blocked P1-T2b/P1-T4
 - 2026-09-21 · P2-T1 · customers + subscriptions (E.164 checked in DB), seed of 5 customers matching the mock payers; 123 tests pass; engine tests now isolated from local demo rules · next: P2-T2 [REVIEW]
+- 2026-09-21 · P2-T2 · invoices + unique amounts; concurrency test (40 parallel commits) passes and fails when the lock is removed; 132 tests pass · ⏸ STOPPED for human review
