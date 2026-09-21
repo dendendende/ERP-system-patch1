@@ -261,10 +261,86 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "entries_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "entries_rule_id_fkey"
             columns: ["rule_id"]
             isOneToOne: false
             referencedRelation: "rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          base_amount: number
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          due_on: string
+          id: string
+          issued_on: string
+          notes: string
+          number: string
+          status: string
+          subscription_id: string | null
+          transfer_amount: number | null
+          unique_amount: number | null
+          unique_code: number
+          void_reason: string | null
+        }
+        Insert: {
+          base_amount: number
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          due_on: string
+          id?: string
+          issued_on: string
+          notes?: string
+          number: string
+          status?: string
+          subscription_id?: string | null
+          transfer_amount?: number | null
+          unique_amount?: number | null
+          unique_code: number
+          void_reason?: string | null
+        }
+        Update: {
+          base_amount?: number
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          due_on?: string
+          id?: string
+          issued_on?: string
+          notes?: string
+          number?: string
+          status?: string
+          subscription_id?: string | null
+          transfer_amount?: number | null
+          unique_amount?: number | null
+          unique_code?: number
+          void_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]
@@ -400,12 +476,48 @@ export type Database = {
     }
     Functions: {
       apply_rules_to_unlabelled: { Args: never; Returns: number }
+      create_invoice: {
+        Args: {
+          p_base_amount: number
+          p_customer_id: string
+          p_due_on: string
+          p_issued_on: string
+          p_notes?: string
+          p_subscription_id?: string
+        }
+        Returns: {
+          base_amount: number
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          due_on: string
+          id: string
+          issued_on: string
+          notes: string
+          number: string
+          status: string
+          subscription_id: string | null
+          transfer_amount: number | null
+          unique_amount: number | null
+          unique_code: number
+          void_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       current_app_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
       enable_audit: { Args: { target: unknown }; Returns: undefined }
+      free_unique_code: { Args: { p_base: number }; Returns: number }
+      invoice_number: { Args: { n: number }; Returns: string }
       jakarta_today: { Args: never; Returns: string }
+      lock_unique_amounts: { Args: never; Returns: undefined }
       match_rule: {
         Args: { p_description: string; p_direction: string }
         Returns: {
@@ -451,6 +563,32 @@ export type Database = {
       sync_bank_batch: {
         Args: { p_account_id: string; p_rows: Json; p_synced_at: string }
         Returns: number
+      }
+      void_invoice: {
+        Args: { p_invoice_id: string; p_reason: string }
+        Returns: {
+          base_amount: number
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          due_on: string
+          id: string
+          issued_on: string
+          notes: string
+          number: string
+          status: string
+          subscription_id: string | null
+          transfer_amount: number | null
+          unique_amount: number | null
+          unique_code: number
+          void_reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
