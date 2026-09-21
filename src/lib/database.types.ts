@@ -168,6 +168,36 @@ export type Database = {
         }
         Relationships: []
       }
+      customers: {
+        Row: {
+          billing_email: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          notes: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          billing_email?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          billing_email?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string
+          whatsapp_number?: string | null
+        }
+        Relationships: []
+      }
       entries: {
         Row: {
           bank_transaction_id: string
@@ -221,6 +251,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entries_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
@@ -285,6 +322,53 @@ export type Database = {
             columns: ["created_from_entry_id"]
             isOneToOne: false
             referencedRelation: "entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          customer_id: string
+          cycle: string
+          end_date: string | null
+          id: string
+          next_invoice_date: string
+          plan_name: string
+          price: number
+          start_date: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          cycle: string
+          end_date?: string | null
+          id?: string
+          next_invoice_date: string
+          plan_name: string
+          price: number
+          start_date: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          cycle?: string
+          end_date?: string | null
+          id?: string
+          next_invoice_date?: string
+          plan_name?: string
+          price?: number
+          start_date?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]

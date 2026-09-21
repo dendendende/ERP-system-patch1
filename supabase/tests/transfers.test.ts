@@ -1,6 +1,6 @@
 import type { Client } from "pg";
 import { describe, expect, it } from "vitest";
-import { actAs, actAsAdmin, createUser, withRollback } from "./db";
+import { actAs, actAsAdmin, createUser, withRulesOff } from "./db";
 
 // Dates in 2031 so committed demo data (mock bank, e2e imports) can never be the counterpart.
 let seq = 0;
@@ -43,7 +43,7 @@ const TRANSFER = "Transfer between own accounts";
 
 describe("own-transfer detection", () => {
   it("out on one account + same amount in on another, next day → both are transfers", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const [a, b] = [await account(db), await account(db)];
       const out = await tx(db, a, "out", 45_000_000, "2031-03-24T16:00:00+07:00");
       const inn = await tx(db, b, "in", 45_000_000, "2031-03-25T09:00:00+07:00");
@@ -53,7 +53,7 @@ describe("own-transfer detection", () => {
   });
 
   it("uses Jakarta dates: 23:30 and 00:30 WIB are one day apart even across UTC midnight", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const [a, b] = [await account(db), await account(db)];
       const out = await tx(db, a, "out", 1_000_001, "2031-03-01T23:30:00+07:00");
       await tx(db, b, "in", 1_000_001, "2031-03-02T00:30:00+07:00");
@@ -62,7 +62,7 @@ describe("own-transfer detection", () => {
   });
 
   it("is not a transfer when the account, amount, direction or timing doesn't fit", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const [a, b] = [await account(db), await account(db)];
       const same = await tx(db, a, "out", 500_000, "2031-03-01T09:00:00+07:00");
       await tx(db, a, "in", 500_000, "2031-03-01T10:00:00+07:00"); // same account (a refund)
@@ -79,7 +79,7 @@ describe("own-transfer detection", () => {
   });
 
   it("pairs each transaction only once", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const [a, b, c] = [await account(db), await account(db), await account(db)];
       await tx(db, a, "out", 2_000_000, "2031-03-01T09:00:00+07:00");
       const first = await tx(db, b, "in", 2_000_000, "2031-03-01T09:05:00+07:00");
@@ -90,7 +90,7 @@ describe("own-transfer detection", () => {
   });
 
   it("beats a rule, but never overrides a label a person set", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const [a, b] = [await account(db), await account(db)];
       const salary = (await db.query("select id from categories where name = 'Salary'")).rows[0].id;
       await db.query(

@@ -1,6 +1,6 @@
 import type { Client } from "pg";
 import { describe, expect, it } from "vitest";
-import { actAs, actAsAdmin, createUser, tryQuery, withRollback } from "./db";
+import { actAs, actAsAdmin, createUser, tryQuery, withRulesOff } from "./db";
 
 let seq = 0;
 
@@ -72,14 +72,14 @@ async function rule(
 
 describe("entries engine", () => {
   it("every new bank transaction gets exactly one entry; no rule → needs_label", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const e = await tx(db, await account(db), "out", "SOMETHING NEW");
       expect(e).toMatchObject({ status: "needs_label", category: null });
     });
   });
 
   it("a matching rule labels it automatically (case-insensitive contains)", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const r = await rule(db, {
         pattern: "amazon web services",
         direction: "out",
@@ -97,7 +97,7 @@ describe("entries engine", () => {
   });
 
   it("highest priority wins; on a tie the newest rule wins", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const acc = await account(db);
       await rule(db, {
         pattern: "TOKO",
@@ -115,7 +115,7 @@ describe("entries engine", () => {
   });
 
   it("rules only match their own direction, and can't point at the wrong kind of category", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       await rule(db, { pattern: "PT MAJU", direction: "in", category: "Subscription income" });
       expect((await tx(db, await account(db), "out", "REFUND PT MAJU")).status).toBe("needs_label");
 
@@ -130,7 +130,7 @@ describe("entries engine", () => {
   });
 
   it("supports equals and regex; rejects an invalid regex when the rule is saved", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const acc = await account(db);
       await rule(db, {
         type: "equals",
@@ -158,7 +158,7 @@ describe("entries engine", () => {
   });
 
   it("inactive rules are ignored; deactivating a rule leaves past entries alone", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const acc = await account(db);
       const r = await rule(db, { pattern: "INDIHOME", direction: "out", category: "Internet" });
       const before = await tx(db, acc, "out", "INDIHOME TELKOM");
@@ -177,7 +177,7 @@ describe("entries engine", () => {
   });
 
   it("sync path (sync_bank_batch as service_role) creates entries too", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const { rows } = await db.query(
         `insert into bank_accounts (bank_name, account_name, account_last4, source)
          values ('Mandiri', 'T', '0004', 'aggregator') returning id`,
@@ -210,7 +210,7 @@ describe("entries engine", () => {
 
 describe("apply_rules_to_unlabelled", () => {
   it("labels waiting entries, never touches labelled ones, and is safe to re-run", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const acc = await account(db);
       const waiting = await tx(db, acc, "out", "CANVA PRO");
       const manual = await tx(db, acc, "out", "CANVA TEAM");
@@ -246,7 +246,7 @@ describe("apply_rules_to_unlabelled", () => {
   });
 
   it("viewers cannot run it", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       await actAs(db, await createUser(db, "viewer"));
       expect((await tryQuery(db, "select apply_rules_to_unlabelled()")).error).toMatch(
         /Not allowed/,
@@ -257,7 +257,7 @@ describe("apply_rules_to_unlabelled", () => {
 
 describe("entry edits", () => {
   it("a person's relabel is marked labelled, stamped, and audited", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const e = await tx(db, await account(db), "out", "GRAB FOOD");
       const operator = await createUser(db, "operator");
       await actAs(db, operator);
@@ -281,7 +281,7 @@ describe("entry edits", () => {
   });
 
   it("rejects a category of the wrong direction", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const e = await tx(db, await account(db), "out", "X");
       await actAs(db, await createUser(db, "owner"));
       const res = await tryQuery(db, "update entries set category_id = $1 where id = $2", [
@@ -293,7 +293,7 @@ describe("entry edits", () => {
   });
 
   it("viewers can't edit; nobody can re-point, create or delete entries", async () => {
-    await withRollback(async (db) => {
+    await withRulesOff(async (db) => {
       const acc = await account(db);
       const e = await tx(db, acc, "out", "X");
       const other = await tx(db, acc, "out", "Y");

@@ -18,6 +18,15 @@ export async function withRollback<T>(fn: (db: Client) => Promise<T>): Promise<T
   }
 }
 
+/** withRollback, but with every existing rule switched off first (rolled back afterwards), so
+ * rules people created in their local database never change what a test sees. */
+export function withRulesOff<T>(fn: (db: Client) => Promise<T>): Promise<T> {
+  return withRollback(async (db) => {
+    await db.query("update rules set is_active = false");
+    return fn(db);
+  });
+}
+
 export type Role = "owner" | "operator" | "viewer";
 
 /** Creates an auth user (+ profile via trigger) with the given role. Run as postgres. */

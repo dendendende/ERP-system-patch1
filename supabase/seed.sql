@@ -36,3 +36,18 @@ update public.users set role = 'operator' where id = '00000000-0000-4000-8000-00
 insert into public.bank_accounts (id, bank_name, account_name, account_last4, source) values
   ('00000000-0000-4000-8000-0000000000b1', 'BCA', 'PT Contoh Operasional', '1234', 'csv'),
   ('00000000-0000-4000-8000-0000000000b2', 'Mandiri', 'PT Contoh Payroll', '5678', 'aggregator');
+
+-- Customers (fake). Names match the mock bank's payers so matching (P2-T4) has real-looking data.
+insert into public.customers (id, name, whatsapp_number, billing_email, notes) values
+  ('00000000-0000-4000-8000-0000000000c1', 'PT Maju Jaya', '+6281234560001', 'finance@majujaya.example', ''),
+  ('00000000-0000-4000-8000-0000000000c2', 'CV Sinar Abadi', '+6281234560002', 'admin@sinarabadi.example', ''),
+  ('00000000-0000-4000-8000-0000000000c3', 'PT Karya Digital', '+6281234560003', 'ap@karyadigital.example', 'Pays by the 5th'),
+  ('00000000-0000-4000-8000-0000000000c4', 'PT Nusantara Soft', '+6281234560004', 'billing@nusantarasoft.example', ''),
+  ('00000000-0000-4000-8000-0000000000c5', 'Toko Berkah', '+6281234560005', null, 'WhatsApp only');
+
+insert into public.subscriptions (customer_id, plan_name, price, cycle, start_date, next_invoice_date, status) values
+  ('00000000-0000-4000-8000-0000000000c1', 'Business', 4900000, 'monthly', current_date - 200, current_date + 10, 'active'),
+  ('00000000-0000-4000-8000-0000000000c2', 'Starter', 1500000, 'monthly', current_date - 120, current_date + 3, 'active'),
+  ('00000000-0000-4000-8000-0000000000c3', 'Growth', 2750000, 'monthly', current_date - 90, current_date + 20, 'active'),
+  ('00000000-0000-4000-8000-0000000000c4', 'Growth yearly', 29700000, 'yearly', current_date - 300, current_date + 65, 'active'),
+  ('00000000-0000-4000-8000-0000000000c5', 'Starter', 1500000, 'monthly', current_date - 60, current_date + 14, 'paused');
