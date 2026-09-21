@@ -57,11 +57,11 @@ const pay = (db: Client, inv: string, tx: string, amount: bigint) =>
 const BASE = 4_900_000n;
 
 describe("payments", () => {
-  it("full payment: the exact unique amount marks the invoice paid", async () => {
+  it("full payment: the exact unique amount marks the invoice paid, code included", async () => {
     await withRulesOff(async (db) => {
       const s = await setup(db);
       const inv = await invoice(db, s.customer, BASE);
-      const due = BigInt((await state(db, inv)).amount_due);
+      const due = BigInt((await state(db, inv)).transfer_amount!);
       const tx = await transfer(db, s.account, due);
       await actAs(db, s.operator);
       await pay(db, inv, tx, due);
@@ -71,6 +71,17 @@ describe("payments", () => {
         transfer_amount: null,
         paid: due.toString(),
       });
+    });
+  });
+
+  it("paying the base price without the code also pays the invoice", async () => {
+    await withRulesOff(async (db) => {
+      const s = await setup(db);
+      const inv = await invoice(db, s.customer, BASE);
+      const tx = await transfer(db, s.account, BASE);
+      await actAs(db, s.operator);
+      await pay(db, inv, tx, BASE);
+      expect(await state(db, inv)).toMatchObject({ status: "paid", amount_due: BASE.toString() });
     });
   });
 
@@ -84,11 +95,11 @@ describe("payments", () => {
       await actAs(db, s.operator);
       await pay(db, inv, tx1, 2_000_000n);
       const after = await state(db, inv);
-      const rest = BigInt(before.amount_due) - 2_000_000n;
+      const rest = BASE - 2_000_000n; // the first code wasn't used, so it isn't owed
       const newCode = BigInt(after.transfer_amount!) - rest;
       expect(after.status).toBe("partly_paid");
+      expect(after.amount_due).toBe(BASE.toString());
       expect(newCode >= 1n && newCode <= 999n).toBe(true);
-      expect(BigInt(after.amount_due)).toBe(BigInt(before.amount_due) + newCode);
       expect(after.transfer_amount).not.toBe(before.transfer_amount);
 
       // the new amount is unique too: another invoice can't ask for it
@@ -101,7 +112,10 @@ describe("payments", () => {
       const tx2 = await transfer(db, s.account, BigInt(after.transfer_amount!));
       await actAs(db, s.operator);
       await pay(db, inv, tx2, BigInt(after.transfer_amount!));
-      expect((await state(db, inv)).status).toBe("paid");
+      expect(await state(db, inv)).toMatchObject({
+        status: "paid",
+        amount_due: (BASE + newCode).toString(), // this code was used, so it was paid
+      });
     });
   });
 
@@ -109,7 +123,7 @@ describe("payments", () => {
     await withRulesOff(async (db) => {
       const s = await setup(db);
       const inv = await invoice(db, s.customer, BASE);
-      const due = BigInt((await state(db, inv)).amount_due);
+      const due = BigInt((await state(db, inv)).transfer_amount!);
       const tx = await transfer(db, s.account, 5_000_000n);
       await actAs(db, s.operator);
 
@@ -129,8 +143,8 @@ describe("payments", () => {
       const s = await setup(db);
       const a = await invoice(db, s.customer, 1_500_000n);
       const b = await invoice(db, s.customer, 2_750_000n);
-      const dueA = BigInt((await state(db, a)).amount_due);
-      const dueB = BigInt((await state(db, b)).amount_due);
+      const dueA = BigInt((await state(db, a)).transfer_amount!);
+      const dueB = BigInt((await state(db, b)).transfer_amount!);
       const tx = await transfer(db, s.account, dueA + dueB);
       await actAs(db, s.operator);
       await pay(db, a, tx, dueA);

@@ -57,6 +57,11 @@ export async function GET(request: Request) {
     },
   });
 
+  // Which invoices did the new money pay? Also picks up anything a failed run left behind.
+  const { data: matched, error: matchError } = await db.rpc("match_payments");
+  if (matchError) console.error(`payment matching failed: ${matchError.message}`);
+
   // Non-200 when anything failed, so cron monitoring flags it.
-  return Response.json({ results }, { status: results.every((r) => r.ok) ? 200 : 500 });
+  const ok = results.every((r) => r.ok) && !matchError;
+  return Response.json({ results, matched }, { status: ok ? 200 : 500 });
 }

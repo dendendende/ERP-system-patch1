@@ -4,12 +4,14 @@
 -- several invoices; one invoice can be paid by several transfers. Nobody edits an invoice's
 -- status: refresh_invoice() recomputes it from the payments every time one is added.
 --
--- amount_due is what the invoice asks for in total. It starts at base + unique code. When an
--- invoice is partly paid, the rest gets a fresh unique code on top (so the next transfer can
--- only mean this invoice), and amount_due grows by that code — at most Rp 999 each time.
+-- amount_due is what the customer owes in total: the base price, plus every unique code they
+-- actually transferred. transfer_amount is what to ask for now: what is still owed + a unique
+-- code, so the transfer can only mean this invoice. A transfer of exactly transfer_amount pays
+-- the code too (amount_due grows by it, at most Rp 999); any other amount didn't use the code
+-- and isn't charged for it. After a partial payment the rest gets a fresh code the same way.
 
 alter table public.invoices add column amount_due bigint;
-update public.invoices set amount_due = unique_amount;
+update public.invoices set amount_due = base_amount;
 alter table public.invoices
   alter column amount_due set not null,
   add check (amount_due >= base_amount);
@@ -77,17 +79,15 @@ begin
   elsif paid = 0 then
     return; -- untouched: still open, still asking for the original unique amount
   else
-    -- Called after each new payment: a fresh unique amount for the rest, and amount_due grows
-    -- by the new code. (The search skips this invoice's own current amount too; harmless.)
+    -- Called after each new payment: a fresh unique amount for the rest.
+    -- (The search skips this invoice's own current amount too; harmless.)
     perform public.lock_unique_amounts();
     code := public.free_unique_code(remaining);
     if code is null then
       raise exception 'No free unique amount near % for the rest of %', remaining, inv.number;
     end if;
     update public.invoices
-       set status = 'partly_paid',
-           amount_due = inv.amount_due + code,
-           transfer_amount = remaining + code
+       set status = 'partly_paid', transfer_amount = remaining + code
      where id = p_invoice_id;
   end if;
 end;
@@ -142,6 +142,12 @@ begin
   end if;
 
   owed := inv.amount_due - public.invoice_paid(p_invoice_id);
+  -- exactly the amount we asked for: the customer used the unique code, so it is part of what
+  -- they paid for this invoice (not a leftover on the transfer)
+  if p_amount = inv.transfer_amount and p_amount > owed then
+    update public.invoices set amount_due = amount_due + (p_amount - owed) where id = p_invoice_id;
+    owed := p_amount;
+  end if;
   if p_amount > owed then
     raise exception 'That is more than the invoice still owes (%)', owed
       using errcode = 'check_violation';
@@ -200,7 +206,7 @@ begin
      issued_on, due_on, notes)
   values
     (public.invoice_number(n), p_customer_id, p_subscription_id, p_base_amount, code,
-     p_base_amount + code, p_base_amount + code, p_issued_on, p_due_on, coalesce(p_notes, ''))
+     p_base_amount + code, p_base_amount, p_issued_on, p_due_on, coalesce(p_notes, ''))
   returning * into inv;
   return inv;
 end;

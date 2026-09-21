@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { parseTemplateCsv, type RowError } from "@/lib/bank/csv-import";
 import { toBatchRows } from "@/lib/bank/sync";
 import type { TablesInsert } from "@/lib/database.types";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export type ImportState = {
@@ -75,6 +76,11 @@ export async function importStatement(_prev: ImportState, form: FormData): Promi
     { onConflict: "bank_account_id,external_id", ignoreDuplicates: true },
   );
   if (error) return { preview, error: "Import failed. Nothing was saved." };
+
+  // Match new money to invoices. Only the engine's identity may record automatic payments; if
+  // this fails the import still stands and the next hourly sync matches it.
+  const { error: matchError } = await createAdminClient().rpc("match_payments");
+  if (matchError) console.error(`payment matching after import failed: ${matchError.message}`);
 
   revalidatePath("/money");
   return { imported: fresh.length };

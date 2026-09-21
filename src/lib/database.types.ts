@@ -587,10 +587,18 @@ export type Database = {
       }
       enable_audit: { Args: { target: unknown }; Returns: undefined }
       free_unique_code: { Args: { p_base: number }; Returns: number }
+      invoice_candidates: {
+        Args: { p_bank_transaction_id: string }
+        Returns: {
+          invoice_id: string
+          strong: boolean
+        }[]
+      }
       invoice_number: { Args: { n: number }; Returns: string }
       invoice_paid: { Args: { p_invoice_id: string }; Returns: number }
       jakarta_today: { Args: never; Returns: string }
       lock_unique_amounts: { Args: never; Returns: undefined }
+      match_payments: { Args: never; Returns: number }
       match_rule: {
         Args: { p_description: string; p_direction: string }
         Returns: {
