@@ -1,21 +1,10 @@
-import { createHash, timingSafeEqual } from "node:crypto";
 import type { BankSourceAdapter } from "@/lib/bank/adapter";
 import { MockAdapter } from "@/lib/bank/mock-adapter";
 import { runSync } from "@/lib/bank/sync";
+import { authorized } from "@/lib/cron";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
-
-// Vercel Cron sends `Authorization: Bearer $CRON_SECRET`.
-function authorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  const digest = (s: string) => createHash("sha256").update(s).digest();
-  return timingSafeEqual(
-    digest(request.headers.get("authorization") ?? ""),
-    digest(`Bearer ${secret}`),
-  );
-}
 
 function adapterFromEnv(): BankSourceAdapter | null {
   switch (process.env.BANK_ADAPTER) {

@@ -547,6 +547,7 @@ export type Database = {
         }
       }
       apply_rules_to_unlabelled: { Args: never; Returns: number }
+      create_due_invoices: { Args: { p_lead_days?: number }; Returns: number }
       create_invoice: {
         Args: {
           p_base_amount: number
