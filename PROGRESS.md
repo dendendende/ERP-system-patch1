@@ -58,7 +58,7 @@
 - [x] P2-T2 Invoices and unique amounts [REVIEW]
 - [x] P2-T3 Payments and invoice status [REVIEW]
 - [x] P2-T4 Matching engine [REVIEW]
-- [ ] P2-T5 Auto-invoicing job
+- [x] P2-T5 Auto-invoicing job
 - [ ] P2-T6 Customer list
 - [ ] P2-T7 Customer detail
 - [ ] P2-T8 Invoice and subscription forms
@@ -137,3 +137,4 @@
 - 2026-09-21 · P2-T3 · approved by human (fresh code added on top for the rest) · next: P2-T4 [REVIEW]
 - 2026-09-21 · P2-T4 · match_payments() after sync + CSV import (3 rules, never guesses when 2+ fit); amount_due now counts only codes actually transferred; mutation check: ambiguity tests fail without the guard; 150 unit/DB + 17 e2e pass · ⏸ STOPPED for human review
 - 2026-09-23 · P2-T4 · approved by human (incl. the amount_due change to P2-T3) · next: P2-T5
+- 2026-09-23 · P2-T5 · create_due_invoices() + daily cron (08:00 Jakarta); lead time 14 days, one invoice per subscription per period (unique index); verified on demo data: 2 created, second run 0; 157 tests pass · next: P2-T6
