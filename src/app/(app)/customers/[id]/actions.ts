@@ -162,3 +162,34 @@ export async function updateSubscription(_prev: FormState, form: FormData): Prom
   revalidatePath(`/customers/${customerId}`);
   return { ok: "Saved.", at: Date.now() };
 }
+
+/** Owner only: count a bill as paid although no transfer will arrive (cash, a swap, a write-off). */
+export async function markPaidWithoutTransfer(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const id = String(form.get("invoiceId") ?? "");
+  const customerId = String(form.get("customerId") ?? "");
+  const reason = String(form.get("reason") ?? "")
+    .trim()
+    .slice(0, 300);
+  if (!reason) return { error: "Say why this bill counts as paid." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("mark_invoice_paid", {
+    p_invoice_id: id,
+    p_reason: reason,
+  });
+  if (error) {
+    return {
+      error: error.message.includes("Only the owner")
+        ? "Only the owner can mark a bill paid without a transfer."
+        : error.message.includes("not waiting for money")
+          ? "This bill is already paid or cancelled."
+          : "Couldn't mark it paid. Try again.",
+    };
+  }
+
+  revalidatePath(`/customers/${customerId}`);
+  return { ok: "Marked paid.", at: Date.now() };
+}

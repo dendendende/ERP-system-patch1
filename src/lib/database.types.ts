@@ -365,30 +365,33 @@ export type Database = {
       payments: {
         Row: {
           amount_applied: number
-          bank_transaction_id: string
+          bank_transaction_id: string | null
           created_at: string
           created_by: string | null
           id: string
           invoice_id: string
           method: string
+          reason: string | null
         }
         Insert: {
           amount_applied: number
-          bank_transaction_id: string
+          bank_transaction_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           invoice_id: string
           method: string
+          reason?: string | null
         }
         Update: {
           amount_applied?: number
-          bank_transaction_id?: string
+          bank_transaction_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           invoice_id?: string
           method?: string
+          reason?: string | null
         }
         Relationships: [
           {
@@ -555,6 +558,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payments_without_transfer: {
+        Row: {
+          amount_applied: number | null
+          created_at: string | null
+          created_by: string | null
+          customer_id: string | null
+          customer_name: string | null
+          id: string | null
+          invoice_id: string | null
+          number: string | null
+          reason: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       apply_payment: {
@@ -566,12 +605,13 @@ export type Database = {
         }
         Returns: {
           amount_applied: number
-          bank_transaction_id: string
+          bank_transaction_id: string | null
           created_at: string
           created_by: string | null
           id: string
           invoice_id: string
           method: string
+          reason: string | null
         }
         SetofOptions: {
           from: "*"
@@ -633,6 +673,25 @@ export type Database = {
       invoice_paid: { Args: { p_invoice_id: string }; Returns: number }
       jakarta_today: { Args: never; Returns: string }
       lock_unique_amounts: { Args: never; Returns: undefined }
+      mark_invoice_paid: {
+        Args: { p_invoice_id: string; p_reason: string }
+        Returns: {
+          amount_applied: number
+          bank_transaction_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_id: string
+          method: string
+          reason: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       match_payments: { Args: never; Returns: number }
       match_rule: {
         Args: { p_description: string; p_direction: string }

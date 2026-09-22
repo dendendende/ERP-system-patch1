@@ -5,6 +5,7 @@ import { formatRupiah } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { updateEntry } from "./actions";
 import { History } from "./history";
+import { type Candidate, MatchToInvoice } from "./match-form";
 
 export const metadata = { title: "Transaction · Cashflow" };
 
@@ -28,7 +29,8 @@ export default async function TransactionPage({ params }: PageProps<"/money/[id]
     .select(
       `id, occurred_at, amount::text, direction, description_raw, balance_after::text, external_id, created_at,
        bank_accounts!inner (bank_name, account_name, account_last4, source),
-       entries!inner (id, status, note, is_recurring, category_id, categories (name))`,
+       entries!inner (id, status, note, is_recurring, category_id, invoice_id, categories (name)),
+       payments (id, amount_applied::text, method, invoices (number))`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -49,6 +51,36 @@ export default async function TransactionPage({ params }: PageProps<"/money/[id]
   ]);
   const canEdit = me?.role === "owner" || me?.role === "operator";
   const isIn = tx.direction === "in";
+
+  // Money coming in that hasn't been matched yet: offer the bills it could belong to.
+  let candidates: Candidate[] = [];
+  if (isIn && canEdit && tx.payments.length === 0) {
+    const [{ data: fits }, { data: waiting }] = await Promise.all([
+      supabase.rpc("invoice_candidates", { p_bank_transaction_id: tx.id }),
+      supabase
+        .from("invoices")
+        .select("id, number, amount_due::text, transfer_amount::text, customers (name), payments (amount_applied::text)")
+        .in("status", ["open", "partly_paid"])
+        .order("due_on")
+        .limit(50),
+    ]);
+    const strong = new Set((fits ?? []).filter((f) => f.strong).map((f) => f.invoice_id));
+    candidates = (waiting ?? [])
+      .map((i) => ({
+        id: i.id,
+        number: i.number,
+        customer: i.customers?.name ?? "",
+        owed: (
+          BigInt(i.amount_due) -
+          i.payments.reduce((total, p) => total + BigInt(p.amount_applied), 0n)
+        ).toString(),
+        transferAmount: i.transfer_amount ?? i.amount_due,
+        fits: strong.has(i.id),
+      }))
+      // the ones the engine thinks fit go first, then whatever is due soonest
+      .sort((a, b) => Number(b.fits) - Number(a.fits))
+      .slice(0, 8);
+  }
   const status = STATUS[entry.status] ?? STATUS.needs_label;
 
   return (
@@ -70,6 +102,28 @@ export default async function TransactionPage({ params }: PageProps<"/money/[id]
           {entry.is_recurring ? <StatusPill>Repeats</StatusPill> : null}
         </div>
       </header>
+
+      {candidates.length || (isIn && canEdit && tx.payments.length === 0) ? (
+        <MatchToInvoice
+          transactionId={tx.id}
+          entryId={entry.id}
+          amount={tx.amount}
+          candidates={candidates}
+        />
+      ) : null}
+
+      {tx.payments.length ? (
+        <Card className="flex flex-col gap-2">
+          <h2 className="font-display text-xl">Paid a bill</h2>
+          {tx.payments.map((p) => (
+            <p key={p.id} className="text-sm">
+              <span className="tabular-nums">{formatRupiah(BigInt(p.amount_applied))}</span> of
+              this transfer paid {p.invoices?.number}
+              {p.method === "auto" ? " — matched by the app" : " — matched by someone"}
+            </p>
+          ))}
+        </Card>
+      ) : null}
 
       <Card className="flex flex-col gap-4">
         <h2 className="font-display text-xl">Label</h2>

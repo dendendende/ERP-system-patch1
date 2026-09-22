@@ -166,6 +166,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
                     dueOn={invoice.due_on}
                     notes={invoice.notes}
                     canVoid={invoice.status !== "paid"}
+                    canMarkPaid={isOwner && invoice.status !== "paid"}
                   />
                 ) : null}
               </Card>

@@ -3,7 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 import { Button, Card, Input, StatusPill } from "@/components/ui";
-import { createInvoice, type FormState, updateInvoice, voidInvoice } from "./actions";
+import {
+  createInvoice,
+  type FormState,
+  markPaidWithoutTransfer,
+  updateInvoice,
+  voidInvoice,
+} from "./actions";
 
 const field = "h-10 rounded-lg border border-line bg-surface px-3 text-sm";
 
@@ -93,19 +99,26 @@ export function EditInvoice({
   dueOn,
   notes,
   canVoid,
+  canMarkPaid,
 }: {
   invoiceId: string;
   customerId: string;
   dueOn: string;
   notes: string;
   canVoid: boolean;
+  /** owner only: settle a bill no transfer will ever cover */
+  canMarkPaid: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [saveState, save, saving] = useActionState<FormState, FormData>(updateInvoice, {});
   const [voidState, cancel, cancelling] = useActionState<FormState, FormData>(voidInvoice, {});
+  const [paidState, markPaid, marking] = useActionState<FormState, FormData>(
+    markPaidWithoutTransfer,
+    {},
+  );
   // A save folds the panel away; the bill above then shows what was saved. Nothing rewrites
   // the boxes while someone is still typing in them.
-  const done = saveState.at ?? voidState.at;
+  const done = saveState.at ?? voidState.at ?? paidState.at;
   const [saved, setSaved] = useState(done);
   if (done !== saved) {
     setSaved(done);
@@ -157,6 +170,22 @@ export function EditInvoice({
             </Button>
           </form>
         ) : null}
+        {canMarkPaid ? (
+          <form action={markPaid} className="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="invoiceId" value={invoiceId} />
+            <input type="hidden" name="customerId" value={customerId} />
+            <Input
+              label="Paid, but not by transfer — how?"
+              name="reason"
+              id={`paid-reason-${invoiceId}`}
+              placeholder="Paid cash at the office"
+              className="w-64"
+            />
+            <Button type="submit" variant="secondary" disabled={marking}>
+              {marking ? "Marking…" : "Mark paid"}
+            </Button>
+          </form>
+        ) : null}
         <p className="text-muted">
           To change the amount, cancel this bill and write a new one — that keeps the history
           honest.
@@ -166,6 +195,7 @@ export function EditInvoice({
       <div className="mt-2 text-sm">
         <Result state={saveState} />
         <Result state={voidState} />
+        <Result state={paidState} />
       </div>
     </div>
   );
