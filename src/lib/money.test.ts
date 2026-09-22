@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatRupiah, formatRupiahShort } from "./money";
+import { formatRupiah, formatRupiahShort, parseRupiahInput } from "./money";
 
 describe("formatRupiah", () => {
   it("groups thousands with dots", () => {
@@ -37,5 +37,20 @@ describe("formatRupiahShort", () => {
 
   it("handles negatives", () => {
     expect(formatRupiahShort(-12_000_000n)).toBe("−Rp 12 jt");
+  });
+});
+
+describe("parseRupiahInput", () => {
+  it("reads amounts the way people type them", () => {
+    expect(parseRupiahInput("1.500.000")).toBe(1_500_000n);
+    expect(parseRupiahInput("1 500 000")).toBe(1_500_000n);
+    expect(parseRupiahInput("1500000")).toBe(1_500_000n);
+    expect(parseRupiahInput("9007199254740993")).toBe(9_007_199_254_740_993n);
+  });
+
+  it("refuses anything that isn't whole rupiah", () => {
+    for (const bad of ["", "0", "-5000", "1,5", "12.50 rb", "Rp 1000", "abc"]) {
+      expect(parseRupiahInput(bad), bad).toBeNull();
+    }
   });
 });

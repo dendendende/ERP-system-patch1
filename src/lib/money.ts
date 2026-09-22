@@ -37,3 +37,12 @@ export function formatRupiahShort(amount: bigint): string {
   const frac = (h % 100n).toString().padStart(2, "0").replace(/0+$/, "");
   return `${sign}Rp ${whole}${frac ? "," + frac : ""} ${UNITS[i].label}`;
 }
+
+/** What someone typed into an amount box: "1.500.000", "1 500 000" or "1500000". null if it
+ * isn't a plain positive whole number of rupiah. */
+export function parseRupiahInput(input: string): bigint | null {
+  const digits = input.replace(/[.\s]/g, "");
+  if (!/^\d{1,18}$/.test(digits)) return null;
+  const amount = BigInt(digits);
+  return amount > 0n ? amount : null;
+}

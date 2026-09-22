@@ -4,6 +4,7 @@ import { Card, EmptyState, StatusPill } from "@/components/ui";
 import { customerHeadline, longDay } from "@/lib/customer-summary";
 import { formatRupiah } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
+import { EditInvoice, NewInvoiceForm } from "./invoice-forms";
 
 export const metadata = { title: "Customer · Cashflow" };
 
@@ -39,16 +40,27 @@ function PaidBar({ paid, total }: { paid: bigint; total: bigint }) {
 
 export default async function CustomerPage({ params }: PageProps<"/customers/[id]">) {
   const { id } = await params;
+  // today in Jakarta, as the form default
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
   const supabase = await createClient();
 
-  const [{ data: customer }, { data: billing }, { data: invoices }, { data: subscriptions }] =
-    await Promise.all([
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [
+    { data: customer },
+    { data: billing },
+    { data: invoices },
+    { data: subscriptions },
+    { data: me },
+  ] = await Promise.all([
       supabase.from("customers").select("id, name, whatsapp_number, billing_email, notes").eq("id", id).maybeSingle(),
       supabase.from("customer_billing").select("still_owed::text, next_due, renews_on, is_late").eq("id", id).maybeSingle(),
       supabase
         .from("invoices")
         .select(
-          "id, number, status, amount_due::text, transfer_amount::text, issued_on, due_on, payments (amount_applied::text)",
+          "id, number, status, notes, amount_due::text, transfer_amount::text, issued_on, due_on, payments (amount_applied::text)",
         )
         .eq("customer_id", id)
         .order("due_on", { ascending: false })
@@ -58,8 +70,15 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
         .select("id, plan_name, price::text, cycle, status, next_invoice_date, end_date")
         .eq("customer_id", id)
         .order("next_invoice_date"),
+      // my own row: everyone can see the whole team, so ask for this user explicitly
+      supabase
+        .from("users")
+        .select("role")
+        .eq("id", user?.id ?? "")
+        .maybeSingle(),
     ]);
   if (!customer) notFound();
+  const canBill = me?.role === "owner" || me?.role === "operator";
 
   const sum = (rows: { amount_applied: string }[]) =>
     rows.reduce((total, p) => total + BigInt(p.amount_applied), 0n);
@@ -92,6 +111,13 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
 
       <section aria-label="Bills" className="flex flex-col gap-3">
         <h2 className="font-display text-xl">Bills</h2>
+        {canBill ? (
+          <NewInvoiceForm
+            customerId={customer.id}
+            today={today}
+            subscriptions={(subscriptions ?? []).filter((s) => s.status === "active")}
+          />
+        ) : null}
         {invoices?.length ? (
           invoices.map((invoice) => {
             const total = BigInt(invoice.amount_due);
@@ -131,6 +157,15 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
                 <p className="text-sm text-muted">
                   Sent {longDay(invoice.issued_on)} · due {longDay(invoice.due_on)}
                 </p>
+                {canBill && invoice.status !== "void" ? (
+                  <EditInvoice
+                    invoiceId={invoice.id}
+                    customerId={customer.id}
+                    dueOn={invoice.due_on}
+                    notes={invoice.notes}
+                    canVoid={invoice.status !== "paid"}
+                  />
+                ) : null}
               </Card>
             );
           })
