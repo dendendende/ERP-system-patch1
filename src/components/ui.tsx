@@ -155,3 +155,40 @@ export function EmptyState({
     </div>
   );
 }
+
+/** Radio tabs inside a GET form: every view has its own URL and works without JavaScript. */
+export function FilterTabs<T extends string>({
+  name,
+  value,
+  options,
+  label,
+}: {
+  name: string;
+  value: T;
+  options: readonly (readonly [T, string])[];
+  label: string;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1" role="group" aria-label={label}>
+      {options.map(([option, text]) => (
+        <label
+          key={option}
+          className={cx(
+            "cursor-pointer rounded-full border px-3 py-1.5 text-sm transition-colors",
+            "has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-surface",
+            value === option ? "border-ink" : "border-line text-muted hover:border-muted/50",
+          )}
+        >
+          <input
+            type="radio"
+            name={name}
+            value={option}
+            defaultChecked={value === option}
+            className="sr-only"
+          />
+          {text}
+        </label>
+      ))}
+    </div>
+  );
+}

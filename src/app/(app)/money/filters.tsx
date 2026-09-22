@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui";
+import { Button, FilterTabs } from "@/components/ui";
 
 export const PAGE_SIZE = 50;
 
@@ -34,25 +34,7 @@ export function Filters({
 }) {
   return (
     <form method="get" action="/money" className="flex flex-col gap-3">
-      <div className="flex flex-wrap gap-1" role="group" aria-label="Show">
-        {TABS.map(([value, label]) => (
-          <label
-            key={value}
-            className={`cursor-pointer rounded-full border px-3 py-1.5 text-sm transition-colors has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-surface ${
-              show === value ? "border-ink" : "border-line text-muted hover:border-muted/50"
-            }`}
-          >
-            <input
-              type="radio"
-              name="show"
-              value={value}
-              defaultChecked={show === value}
-              className="sr-only"
-            />
-            {label}
-          </label>
-        ))}
-      </div>
+      <FilterTabs name="show" value={show} options={TABS} label="Show" />
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1 text-sm">
           Search

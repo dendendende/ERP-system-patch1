@@ -257,6 +257,13 @@ export type Database = {
             foreignKeyName: "entries_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entries_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -332,6 +339,13 @@ export type Database = {
           void_reason?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_billing"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoices_customer_id_fkey"
             columns: ["customer_id"]
@@ -492,6 +506,13 @@ export type Database = {
             foreignKeyName: "subscriptions_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
+            referencedRelation: "customer_billing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
           },
@@ -520,7 +541,20 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      customer_billing: {
+        Row: {
+          id: string | null
+          is_active: boolean | null
+          is_late: boolean | null
+          is_ongoing: boolean | null
+          is_renewing_soon: boolean | null
+          name: string | null
+          next_due: string | null
+          renews_on: string | null
+          still_owed: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       apply_payment: {
