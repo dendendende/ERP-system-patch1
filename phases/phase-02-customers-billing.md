@@ -56,9 +56,13 @@ Runs after each sync, only on `in` transactions not yet matched.
 - Subscription card. Reminder timeline area (placeholder until Phase 3).
 - **Done when:** matches the "Customer billing" canvas screen.
 
-### P2-T8 — Invoice and subscription forms
-- Create/edit invoice (operator, owner); create/edit subscription (owner).
-- Editing an invoice with payments: only due date and notes; amount changes require void + reissue.
+### P2-T8a — Invoice form
+- Create an invoice (operator, owner); edit due date and notes; void with a reason.
+- Amount changes are void + reissue, never an edit.
+- **Done when:** validation and role tests pass.
+
+### P2-T8b — Subscription form
+- Create and edit a subscription (owner only): plan, price, cycle, dates, pause/end.
 - **Done when:** validation and role tests pass.
 
 ### P2-T9 — Manual matching and mark-as-paid **[REVIEW]**

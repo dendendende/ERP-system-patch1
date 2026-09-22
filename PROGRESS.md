@@ -61,7 +61,8 @@
 - [x] P2-T5 Auto-invoicing job
 - [x] P2-T6 Customer list
 - [x] P2-T7 Customer detail
-- [ ] P2-T8 Invoice and subscription forms
+- [ ] P2-T8a Invoice form
+- [ ] P2-T8b Subscription form
 - [ ] P2-T9 Manual matching and mark-as-paid [REVIEW]
 - [ ] Phase 2 acceptance passed → merge
 
