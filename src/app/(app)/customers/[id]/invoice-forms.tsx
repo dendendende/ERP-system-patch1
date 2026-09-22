@@ -100,12 +100,20 @@ export function EditInvoice({
   notes: string;
   canVoid: boolean;
 }) {
-  // open is React state: refreshing the page after a change must not fold the panel away
   const [open, setOpen] = useState(false);
   const [saveState, save, saving] = useActionState<FormState, FormData>(updateInvoice, {});
   const [voidState, cancel, cancelling] = useActionState<FormState, FormData>(voidInvoice, {});
+  // A save folds the panel away; the bill above then shows what was saved. Nothing rewrites
+  // the boxes while someone is still typing in them.
+  const done = saveState.at ?? voidState.at;
+  const [saved, setSaved] = useState(done);
+  if (done !== saved) {
+    setSaved(done);
+    setOpen(false);
+  }
 
   return (
+    <div>
     <details className="text-sm" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="cursor-pointer text-muted underline underline-offset-4">Change</summary>
       <div className="mt-3 flex flex-col gap-3">
@@ -132,7 +140,6 @@ export function EditInvoice({
             {saving ? "Saving…" : "Save"}
           </Button>
         </form>
-        <Result state={saveState} />
 
         {canVoid ? (
           <form action={cancel} className="flex flex-wrap items-end gap-3">
@@ -150,12 +157,16 @@ export function EditInvoice({
             </Button>
           </form>
         ) : null}
-        <Result state={voidState} />
         <p className="text-muted">
           To change the amount, cancel this bill and write a new one — that keeps the history
           honest.
         </p>
       </div>
     </details>
+      <div className="mt-2 text-sm">
+        <Result state={saveState} />
+        <Result state={voidState} />
+      </div>
+    </div>
   );
 }

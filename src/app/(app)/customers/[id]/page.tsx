@@ -5,6 +5,7 @@ import { customerHeadline, longDay } from "@/lib/customer-summary";
 import { formatRupiah } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { EditInvoice, NewInvoiceForm } from "./invoice-forms";
+import { EditSubscription, NewSubscriptionForm } from "./subscription-forms";
 
 export const metadata = { title: "Customer · Cashflow" };
 
@@ -67,7 +68,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
         .limit(20),
       supabase
         .from("subscriptions")
-        .select("id, plan_name, price::text, cycle, status, next_invoice_date, end_date")
+        .select("id, plan_name, price::text, cycle, status, start_date, next_invoice_date, end_date")
         .eq("customer_id", id)
         .order("next_invoice_date"),
       // my own row: everyone can see the whole team, so ask for this user explicitly
@@ -79,6 +80,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
     ]);
   if (!customer) notFound();
   const canBill = me?.role === "owner" || me?.role === "operator";
+  const isOwner = me?.role === "owner";
 
   const sum = (rows: { amount_applied: string }[]) =>
     rows.reduce((total, p) => total + BigInt(p.amount_applied), 0n);
@@ -196,6 +198,9 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
               <StatusPill tone={s.status === "active" ? "in" : "neutral"}>
                 {s.status === "active" ? "Running" : s.status === "paused" ? "Paused" : "Ended"}
               </StatusPill>
+              {isOwner ? (
+                <EditSubscription customerId={customer.id} subscription={s} today={today} />
+              ) : null}
             </Card>
           ))
         ) : (
@@ -203,6 +208,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
             This customer isn&apos;t on a plan that renews by itself.
           </EmptyState>
         )}
+        {isOwner ? <NewSubscriptionForm customerId={customer.id} today={today} /> : null}
       </section>
 
       <section aria-label="Reminders" className="flex flex-col gap-3">

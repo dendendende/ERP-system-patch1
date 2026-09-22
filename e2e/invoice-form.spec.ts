@@ -35,8 +35,10 @@ test("an operator writes a bill, changes it, and cancels it", async ({ page }, t
   await newest.getByLabel("Note").fill("Agreed by phone");
   await newest.getByRole("button", { name: "Save" }).click();
   await expect(newest.getByText("Saved.")).toBeVisible();
+  await expect(newest.locator("details[open]")).toHaveCount(0);
 
   // cancelling needs a reason
+  await newest.locator("summary").click();
   await newest.getByRole("button", { name: "Cancel bill" }).click();
   await expect(newest.getByText("Say why this bill is being cancelled.")).toBeVisible();
   await newest.getByLabel("Cancel this bill — why?").fill("Wrong amount");
