@@ -62,7 +62,7 @@
 - [x] P2-T6 Customer list
 - [x] P2-T7 Customer detail
 - [x] P2-T8a Invoice form
-- [ ] P2-T8b Subscription form
+- [x] P2-T8b Subscription form
 - [ ] P2-T9 Manual matching and mark-as-paid [REVIEW]
 - [ ] Phase 2 acceptance passed → merge
 
@@ -142,3 +142,4 @@
 - 2026-09-23 · P2-T6 · /customers list from a customer_billing view (security_invoker); filters All/Late/Renewing soon/Active/Ended + search; 162 unit/DB + e2e filter test pass · next: P2-T7
 - 2026-09-23 · P2-T7 · /customers/[id]: plain-language headline, bill cards (total/paid/still owed + bar + exact transfer amount), subscription card, reminders placeholder; 165 unit/DB + 19 e2e pass · next: P2-T8
 - 2026-09-23 · P2-T8a · bill form on the customer page (write/change/cancel, role-gated); fixed duplicate field ids across repeated forms; 167 unit/DB + 21 e2e pass · next: P2-T8b
+- 2026-09-23 · P2-T8b · subscription form (owner only) on the customer page; panel closes on save so a refresh never clobbers typing; 167 unit/DB + 23 e2e pass · next: P2-T9 [REVIEW]
