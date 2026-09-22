@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button, Card, EmptyState, FilterTabs, StatusPill, TableRow } from "@/components/ui";
 import { formatRupiah } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
@@ -81,7 +82,11 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
               return (
                 <TableRow
                   key={c.id}
-                  primary={c.name}
+                  primary={
+                    <Link href={`/customers/${c.id}`} className="hover:underline underline-offset-4">
+                      {c.name}
+                    </Link>
+                  }
                   secondary={
                     c.next_due
                       ? `Still owed · due ${day(c.next_due)}`
