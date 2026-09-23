@@ -1,4 +1,4 @@
-# Cashflow App — Build Setup for Claude Code
+# Cashflow App — Build Setup
 
 This folder is the complete plan, split so Claude Code can build it **one small step at a time**.
 If a session stops (token limit, crash, closed laptop), nothing is lost: progress lives in
