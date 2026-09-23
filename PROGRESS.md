@@ -63,8 +63,8 @@
 - [x] P2-T7 Customer detail
 - [x] P2-T8a Invoice form
 - [x] P2-T8b Subscription form
-- [ ] P2-T9 Manual matching and mark-as-paid [REVIEW] — ⏸ awaiting review
-- [ ] Phase 2 acceptance passed → merge
+- [x] P2-T9 Manual matching and mark-as-paid [REVIEW]
+- [x] Phase 2 acceptance passed → merge (all four checks pass locally; 172 unit/DB + 25 e2e green — not merged to main yet: push/CI/Vercel still pending, see Blockers)
 
 ## Phase 3 — Reminders
 - [ ] P3-T1 Reminder tables and schedule config
@@ -144,3 +144,5 @@
 - 2026-09-23 · P2-T8a · bill form on the customer page (write/change/cancel, role-gated); fixed duplicate field ids across repeated forms; 167 unit/DB + 21 e2e pass · next: P2-T8b
 - 2026-09-23 · P2-T8b · subscription form (owner only) on the customer page; panel closes on save so a refresh never clobbers typing; 167 unit/DB + 23 e2e pass · next: P2-T9 [REVIEW]
 - 2026-09-23 · P2-T9 · match a transfer to a bill by hand (owner/operator, audited) + owner-only mark-as-paid with reason (payments_without_transfer view for the weekly summary); 172 unit/DB + 25 e2e pass · ⏸ STOPPED for human review
+- 2026-09-23 · P2-T9 · approved by human · next: Phase 2 acceptance
+- 2026-09-23 · Phase 2 acceptance · all four checks pass (unique amounts under concurrency, partial + multi-invoice payments, ambiguity never auto-matched, human reviews done); 172 unit/DB + 25 e2e green · next: Phase 3 (blocked on push/CI/Vercel/staging + WhatsApp keys)

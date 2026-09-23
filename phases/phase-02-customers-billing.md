@@ -73,7 +73,7 @@ Runs after each sync, only on `in` transactions not yet matched.
 ---
 
 ## Phase 2 acceptance
-- [ ] Zero unique-amount collisions under concurrency (tested)
-- [ ] Partial and multi-invoice payments correct (tested)
-- [ ] Ambiguous payments never auto-matched (tested)
-- [ ] Human reviewed P2-T2, P2-T3, P2-T4, P2-T9
+- [x] Zero unique-amount collisions under concurrency (tested) — 40 invoices created in parallel, each in its own connection, all commit with different amounts; fails without the lock
+- [x] Partial and multi-invoice payments correct (tested) — part payment then settled, overpayment, one transfer paying two bills and refused a third time
+- [x] Ambiguous payments never auto-matched (tested) — amount fits one bill while the description names another; two invoice numbers in one description; the same rest on two bills of one customer
+- [x] Human reviewed P2-T2, P2-T3, P2-T4, P2-T9 (2026-09-21 and 2026-09-23)

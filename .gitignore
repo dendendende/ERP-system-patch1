@@ -45,3 +45,7 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+# project-specific generated files
+node_modules/.pnpm/@typescript-eslint+eslint-p_748c9a660256d0e52b56564aa9609124/node_modules/@typescript-eslint/eslint-plugin/dist/rules/prefer-optional-chain-utils/gatherLogicalOperands.d.ts
+node_modules/.pnpm/@typescript-eslint+eslint-p_748c9a660256d0e52b56564aa9609124/node_modules/@typescript-eslint/eslint-plugin/dist/rules/prefer-optional-chain-utils/gatherLogicalOperands.js
