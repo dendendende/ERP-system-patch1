@@ -10,6 +10,9 @@ const ROUTE_ROLES: [prefix: string, role: Role][] = [
   ["/settings/team", "owner"],
   ["/settings/audit-log", "owner"],
   ["/settings/categories", "owner"],
+  ["/settings/reminders", "owner"],
+  ["/settings/health", "owner"],
+  ["/settings/weekly-summary", "owner"],
 ];
 
 export function requiredRole(pathname: string): Role {
@@ -22,8 +25,27 @@ export function requiredRole(pathname: string): Role {
   return best?.[1] ?? "viewer";
 }
 
+/** Who may open the forecast — an explicit list, not a rank (the plan: owner and viewer yes,
+ * operator no). Set FORECAST_ROLES, e.g. "owner,viewer,operator"; default "owner,viewer". */
+export function forecastRoles(env: Record<string, string | undefined> = process.env): Role[] {
+  const listed = (env.FORECAST_ROLES ?? "owner,viewer").split(",").map((r) => r.trim());
+  return (["owner", "operator", "viewer"] as const).filter((r) => listed.includes(r));
+}
+
+/** Pages only certain roles may open, whatever their rank. */
+function onlyRoles(pathname: string): Role[] | null {
+  return pathname === "/forecast" || pathname.startsWith("/forecast/") ? forecastRoles() : null;
+}
+
+/** Does opening this page need the person's role looked up? */
+export function isRestricted(pathname: string): boolean {
+  return requiredRole(pathname) !== "viewer" || onlyRoles(pathname) !== null;
+}
+
 export function canAccess(role: Role | null | undefined, pathname: string): boolean {
   if (!role) return false;
+  const only = onlyRoles(pathname);
+  if (only) return only.includes(role);
   return RANK[role] >= RANK[requiredRole(pathname)];
 }
 

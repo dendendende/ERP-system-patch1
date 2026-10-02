@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Card, Input, StatusPill } from "@/components/ui";
+import { useFormAction } from "@/components/use-form-action";
 import {
   createInvoice,
   type FormState,
@@ -35,14 +36,14 @@ export function NewInvoiceForm({
   today: string;
   subscriptions: { id: string; plan_name: string }[];
 }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(createInvoice, {});
+  const [state, action, pending] = useFormAction<FormState>(createInvoice, {});
   const inTwoWeeks = new Date(`${today}T12:00:00+07:00`);
   inTwoWeeks.setDate(inTwoWeeks.getDate() + 14);
 
   return (
     <Card className="flex flex-col gap-4">
       <h2 className="font-display text-xl">Write a bill</h2>
-      <form action={action} className="flex flex-wrap items-end gap-4">
+      <form onSubmit={action} className="flex flex-wrap items-end gap-4">
         <input type="hidden" name="customerId" value={customerId} />
         <Input
           label="Amount (Rp)"
@@ -110,9 +111,9 @@ export function EditInvoice({
   canMarkPaid: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [saveState, save, saving] = useActionState<FormState, FormData>(updateInvoice, {});
-  const [voidState, cancel, cancelling] = useActionState<FormState, FormData>(voidInvoice, {});
-  const [paidState, markPaid, marking] = useActionState<FormState, FormData>(
+  const [saveState, save, saving] = useFormAction<FormState>(updateInvoice, {});
+  const [voidState, cancel, cancelling] = useFormAction<FormState>(voidInvoice, {});
+  const [paidState, markPaid, marking] = useFormAction<FormState>(
     markPaidWithoutTransfer,
     {},
   );
@@ -130,7 +131,7 @@ export function EditInvoice({
     <details className="text-sm" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="cursor-pointer text-muted underline underline-offset-4">Change</summary>
       <div className="mt-3 flex flex-col gap-3">
-        <form action={save} className="flex flex-wrap items-end gap-3">
+        <form onSubmit={save} className="flex flex-wrap items-end gap-3">
           <input type="hidden" name="invoiceId" value={invoiceId} />
           <input type="hidden" name="customerId" value={customerId} />
           <label className="flex flex-col gap-1.5 font-medium">
@@ -155,7 +156,7 @@ export function EditInvoice({
         </form>
 
         {canVoid ? (
-          <form action={cancel} className="flex flex-wrap items-end gap-3">
+          <form onSubmit={cancel} className="flex flex-wrap items-end gap-3">
             <input type="hidden" name="invoiceId" value={invoiceId} />
             <input type="hidden" name="customerId" value={customerId} />
             <Input
@@ -171,7 +172,7 @@ export function EditInvoice({
           </form>
         ) : null}
         {canMarkPaid ? (
-          <form action={markPaid} className="flex flex-wrap items-end gap-3">
+          <form onSubmit={markPaid} className="flex flex-wrap items-end gap-3">
             <input type="hidden" name="invoiceId" value={invoiceId} />
             <input type="hidden" name="customerId" value={customerId} />
             <Input

@@ -193,3 +193,57 @@ export async function markPaidWithoutTransfer(
   revalidatePath(`/customers/${customerId}`);
   return { ok: "Marked paid.", at: Date.now() };
 }
+
+/** Put a reminder for this bill on today's list ("Reminders to send" on Home). */
+export async function sendReminderNow(_prev: FormState, form: FormData): Promise<FormState> {
+  const invoiceId = String(form.get("invoiceId") ?? "");
+  const customerId = String(form.get("customerId") ?? "");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("send_reminder_now", { p_invoice_id: invoiceId });
+  if (error) {
+    // the database explains these in plain words already
+    const known = ["Reminders are paused", "no email address", "not waiting for money"].some((m) =>
+      error.message.includes(m),
+    );
+    return {
+      error: error.message.includes("Not allowed")
+        ? "Only the owner or an operator can do this."
+        : error.message.includes("already went out today")
+          ? "There's already a reminder for this bill today — see \"Reminders to send\" on Home."
+          : known
+            ? error.message
+            : "Couldn't add the reminder. Try again.",
+    };
+  }
+
+  revalidatePath(`/customers/${customerId}`);
+  return { ok: "Added to \"Reminders to send\" on Home.", at: Date.now() };
+}
+
+/** Pause (with a reason) or resume every reminder for this customer. Audited. */
+export async function setRemindersPaused(_prev: FormState, form: FormData): Promise<FormState> {
+  const customerId = String(form.get("customerId") ?? "");
+  const paused = form.get("paused") === "true";
+  const reason = String(form.get("reason") ?? "")
+    .trim()
+    .slice(0, 300);
+  if (paused && !reason) return { error: "Say why reminders are being paused." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_reminders_paused", {
+    p_customer_id: customerId,
+    p_paused: paused,
+    p_reason: reason,
+  });
+  if (error) {
+    return {
+      error: error.message.includes("Not allowed")
+        ? "Only the owner or an operator can pause reminders."
+        : "Couldn't change it. Try again.",
+    };
+  }
+
+  revalidatePath(`/customers/${customerId}`);
+  return { ok: paused ? "Reminders paused." : "Reminders back on.", at: Date.now() };
+}

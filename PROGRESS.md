@@ -13,6 +13,8 @@
 ## Blockers
 - P1-T4 blocked: need the bank aggregator choice + sandbox API key (and webhook secret if it uses webhooks). Sync works with BANK_ADAPTER=mock meanwhile; the real adapter only has to implement BankSourceAdapter in src/lib/bank/adapter.ts.
 - P1-T2b blocked: need sample CSV statements (real data removed) from each bank the business uses. P1-T2a ships a documented template CSV meanwhile.
+- Only if automatic sending is turned back on — P3-T4b real email: need the email provider choice (e.g. Resend or Postmark) + a TEST-MODE key and a sending domain. Emails go to the local Mailpit test inbox meanwhile (REMINDER_CHANNELS=mock); the real provider only has to implement EmailTransport in src/lib/reminders/email.ts.
+- Only if automatic sending is turned back on — P3-T6: delivery webhooks (delivered / read / failed) come from the email provider — needs the same provider + its webhook signing secret. Signature checking can only be tested against its real format.
 - P0-T3 / P0-T7 / Phase 0 acceptance: "CI green", "deploy to Vercel preview" and "login with 2FA on preview" need the human: push the branch, and provide the staging Supabase project + Vercel project (set NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY / SESSION_TIMEOUT_MINUTES in Vercel). Local equivalents all pass.
 
 ## Decisions log
@@ -26,6 +28,8 @@
 - 2026-09-19 · e2e tests use their own seed users (e2e-owner@, e2e-operator@) and run with workers: 1; demo users keep their 2FA.
 
 ---
+- 2026-09-27 · Reminders remind the TEAM, not the customer (owner). Automatic sending is ON HOLD: the sender route refuses unless REMINDER_AUTO_SEND=on, and its cron is removed from vercel.json. Due reminders appear on Home ("Reminders to send") with the message ready to copy, open in email/WhatsApp, or hand to Cowork; a person marks it sent or skips it (who + when recorded). The same stop rules decide what is on the list. The automatic sender, email channel and templates stay in the code for later.
+- 2026-10-02 · Database test files now run one at a time (vitest fileParallelism: false). Several tests switch off every bank account or bill inside their transaction; in parallel those row locks occasionally deadlocked. ~13s for the full suite.
 
 ## Phase 0 — Setup
 - [x] P0-T1 Initialize project
@@ -67,33 +71,35 @@
 - [x] Phase 2 acceptance passed → merge (all four checks pass locally; 172 unit/DB + 25 e2e green — not merged to main yet: push/CI/Vercel still pending, see Blockers)
 
 ## Phase 3 — Reminders
-- [ ] P3-T1 Reminder tables and schedule config
-- [ ] P3-T2 Scheduler job
-- [ ] P3-T3 Stop rules [REVIEW]
-- [ ] P3-T4 Email adapter and templates
-- [ ] P3-T5 WhatsApp adapter and templates
-- [ ] P3-T6 Delivery status webhooks [REVIEW]
-- [ ] P3-T7 Timeline on customer detail
-- [ ] P3-T8 Reminder schedule settings
-- [ ] P3-T9 Team escalation
-- [ ] Phase 3 acceptance passed → merge
+- [x] P3-T1 Reminder tables and schedule config
+- [x] P3-T2 Scheduler job
+- [x] P3-T3 Stop rules [REVIEW]
+- [x] P3-T4a Message templates
+- [x] P3-T4b Email channel with PDF invoice
+- [ ] P3-T5 WhatsApp adapter and templates — ⏭ deferred by human (2026-09-27): not needed now; all reminders go by email meanwhile
+- [ ] P3-T6 Delivery status webhooks [REVIEW] — ⏸ on hold with automatic sending (nothing is sent by a provider, so there are no delivery events)
+- [x] P3-T7 Timeline on customer detail
+- [x] P3-T8 Reminder schedule settings
+- [x] P3-T9 Team escalation
+- [ ] Phase 3 acceptance passed → merge — with automatic sending on hold: no duplicate sends / none after payment ✓, overdue never before a post-due bank read ✓ (also on the team list); webhook checks + P3-T6 review are moot until sending is automatic again — owner to decide whether Phase 3 counts as done
 
 ## Phase 4 — Home & health
-- [ ] P4-T1 Reporting queries
-- [ ] P4-T2 Daily balance check
-- [ ] P4-T3 Health signals [REVIEW]
-- [ ] P4-T4 Home screen
-- [ ] P4-T5 Business health screen
-- [ ] P4-T6 Health limits settings
-- [ ] Phase 4 acceptance passed → merge
+- [x] P4-T1 Reporting queries
+- [x] P4-T2 Daily balance check
+- [x] P4-T3 Health signals [REVIEW]
+- [x] P4-T4 Home screen
+- [x] P4-T5 Business health screen
+- [x] P4-T6 Health limits settings
+- [ ] Phase 4 acceptance passed → merge — 3 of 4: report numbers match hand-calculated values ✓, balance mismatch detection ✓, health boundaries ✓; waiting on the human to check the Home and Business health screens (no canvas file here to compare against)
 
 ## Phase 5 — Forecast & pipeline
-- [ ] P5-T1 Recurring expenses
-- [ ] P5-T2 Forecast engine [REVIEW]
-- [ ] P5-T3 Forecast screen
-- [ ] P5-T4 Renewal pipeline
-- [ ] P5-T5 Weekly owner summary
-- [ ] Phase 5 acceptance passed → merge
+- [x] P5-T1a Recurring expenses: table and pattern detection
+- [x] P5-T1b Recurring expenses screen
+- [x] P5-T2 Forecast engine [REVIEW]
+- [x] P5-T3 Forecast screen
+- [x] P5-T4 Renewal pipeline
+- [x] P5-T5 Weekly owner summary
+- [x] Phase 5 acceptance passed → merge — forecast math matches the hand calculation ✓, recurring expenses never auto-created ✓, weekly summary includes manual mark-as-paid ✓, P5-T2 reviewed ✓; automatic Monday sending held with the rest of the sending (not merged — git is the human's)
 
 ## Phase 6 — Security & launch
 - [ ] P6-T1 Audit log screen
@@ -146,3 +152,28 @@
 - 2026-09-23 · P2-T9 · match a transfer to a bill by hand (owner/operator, audited) + owner-only mark-as-paid with reason (payments_without_transfer view for the weekly summary); 172 unit/DB + 25 e2e pass · ⏸ STOPPED for human review
 - 2026-09-23 · P2-T9 · approved by human · next: Phase 2 acceptance
 - 2026-09-23 · Phase 2 acceptance · all four checks pass (unique amounts under concurrency, partial + multi-invoice payments, ambiguity never auto-matched, human reviews done); 172 unit/DB + 25 e2e green · next: Phase 3 (blocked on push/CI/Vercel/staging + WhatsApp keys)
+- 2026-09-25 · P3-T1 · reminder_schedule (default −14 invoice, −7, −1, +3, +7, +14 escalate) + reminders (one per invoice/step/channel, unique index), RLS: team reads, owner edits schedule, only jobs write reminders; 178 tests pass · next: P3-T2
+- 2026-09-25 · P3-T2 · new bills queue reminders (08:00 Jakarta per step; past steps skipped except the bill; due-date moves reschedule); sender every 15 min, 08–19 Jakarta (REMINDER_SEND_HOURS), at-most-once claims (stale claims → failed, never resent), mock channel via REMINDER_CHANNELS; idempotency + 6-sender concurrency tests fail without the guard; 192 tests pass · next: P3-T3 [REVIEW]
+- 2026-09-25 · P3-T3 · stop rules re-checked at send time (paid → cancel + one thank-you unless settled without a transfer; partly paid → amounts read at send; overdue waits for a bank read after it was due; paused/switched-off → skipped; void → cancel all); mutation check: overdue tests fail without the rule; 203 unit/DB + 25 e2e pass · ⏸ STOPPED for human review
+- 2026-09-27 · P3-T3 · approved by human (with the read-only reminder list on the customer page); email to be built against a mock · next: P3-T4
+- 2026-09-27 · P3-T4a · templates (bill, reminder, due tomorrow, overdue, thank-you) in Bahasa Indonesia + English, customers.language (default id); company account only from COMPANY_* env, missing config refuses to send; every template carries the fixed account + warning (unit tested); 220 tests pass · next: P3-T4b
+- 2026-09-27 · P3-T4b · email channel (text + HTML, PDF on the bill via a small built-in PDF writer), delivered to the local Mailpit test inbox under REMINDER_CHANNELS=mock — verified: 3 real emails (Indonesian + English, PDFs open); a real provider is BLOCKED on a key (see Blockers); also fixed e2e tests that left rows/bills behind and broke later runs; 227 unit/DB + 26 e2e pass · next: P3-T5
+- 2026-09-27 · P3-T5 deferred by human (WhatsApp not needed now) → default schedule switched to email for every customer step (audited), queued WhatsApp messages cancelled with a reason and re-queued by email; thank-you uses WhatsApp only if a WhatsApp message actually reached them. P3-T6 blocked on the email provider (delivery webhooks come from it) · next: P3-T7
+- 2026-09-27 · P3-T7 · customer timeline: reminders + payments newest first, plain-language statuses (incl. "Waiting for a bank update"); "Send reminder now" per waiting bill (owner/operator, once per bill per day, still goes through every stop rule incl. rule 3 for hand-sent late notices); "Pause reminders" per customer with a required reason, audited; 235 unit/DB + 28 e2e pass, tests leave no data behind · next: P3-T8
+- 2026-09-27 · P3-T8 · /settings/reminders (owner): days before/after, email on/off (WhatsApp shown on hold), step on/off, preview in both languages with the fixed account; every reminder not yet sent follows a change (moved, cancelled, or brought back), sent ones never touched (DB trigger, 6 tests); 241 unit/DB + 30 e2e pass · next: P3-T9
+- 2026-09-27 · P3-T9 · team_escalations view: bills past the escalation step (+14) with who to call, days late and what is owed; only after a bank read since the escalation day; drops off when paid/cancelled/paused; "Call these customers" card on Home (P4-T4 folds it into the Today list); 247 unit/DB + 30 e2e pass · Phase 3: everything buildable is done; P3-T5 deferred, P3-T6 blocked on the email provider
+- 2026-09-27 · Reminders switched to manual (owner): automatic sender held (REMINDER_AUTO_SEND + cron removed), Home "Reminders to send" list (one line per bill, latest due step; copy / open in email / open in WhatsApp / PDF of the bill; mark as sent or skip — records who, closes older ones it replaces); "Add a reminder to send today" on each bill; fixed: hand-sent reminders shared one provider id and collided; 254 unit/DB + 33 e2e pass
+- 2026-09-30 · P4-T1 · money_summary(): cash in bank, came in / went out this month, usual month (prev 3), recurring-only spending, still owed, past due; own transfers excluded; matches a hand-calculated 2031 dataset · next: P4-T2
+- 2026-09-30 · P4-T2 · balance_checks + check_balances(): every bank-balance row implies a start balance; the first that disagrees gives when and how much; causes: missing days (dated) or a doubled row (named); runs after each bank sync (one row per account per day); red banner lands with Home in P4-T4; separate owner notification skipped — no sending channel while reminders are manual · next: P4-T3 [REVIEW]
+- 2026-09-30 · P4-T3 · health_thresholds (owner-editable, audited) + daily health_snapshots (taken with the daily invoicing run); one boundary rule (health_status) — every limit edge tested; net cashflow danger = 3 negative months running; overall = worst, worked out on read; 283 tests pass · ⏸ STOPPED for human review
+- 2026-09-30 · P4-T3 · approved by human · next: P4-T4
+- 2026-09-30 · P4-T4 · Home: headline (cash + how long it lasts), health pill → /health, came in / went out / still owed (+ past due link), 6-month in-vs-out bars in plain CSS with a screen-reader table and a trend sentence, owner-only red banner for balance mismatches, Today list (auto-matched payments, reminders sent, needs-label count) + reminders to send + calls; monthly_in_out on a shared money_moves view; customer timeline no longer lists cancelled reminders whose day never came; staging load time not measurable yet (no staging) · next: P4-T5
+- 2026-09-30 · P4-T5 · /health: five checks as questions, worst first, value + sentence + safe limit + next-step link when not healthy; checks without data say "No data yet" instead of Healthy · next: P4-T6
+- 2026-09-30 · P4-T6 · /settings/health (owner): safe + danger limit per check with a plain explanation; nonsense limits refused by the table itself; audited; next snapshot only (tested in P4-T3); 287 unit/DB + 38 e2e pass · Phase 4: all tasks done, acceptance waits on a screen check by the human
+- 2026-10-02 · P5-T1a · recurring_expenses (owner writes, audited, never deleted) + suggest_recurring_expenses(): same payee (letters-only pattern), once a month, 3+ months with no gap, amount within ±20%, still going; read-only, confirmed or dismissed patterns never suggested again; monthly patterns only (quarterly/yearly added by hand); tests on seeded rent/salary/hosting + noise · next: P5-T1b
+- 2026-10-02 · P5-T1b · /money/regular-costs: suggestions (owner adds or dismisses; nothing added by itself), list, add, change, stop; team can look. Also fixed app-wide: React 19 cleared a form's fields after every submit — even when the server refused the input — so people lost what they typed; all typed forms now submit via useFormAction (keeps input); 291 unit/DB + 39 e2e pass · next: P5-T2 [REVIEW]
+- 2026-10-02 · P5-T2 · forecast() pure + deterministic (src/lib/forecast.ts), assumptions in one list shown on screen; matches a hand-calculated 90-day dataset (6 tests); customer_payment_delay view (avg days late over paid bills, early = 0); loadForecast() gathers inputs with RLS; 298 tests pass · ⏸ STOPPED for human review
+- 2026-10-02 · P5-T2 · approved by human (late bills expected tomorrow; full amounts, lateness only shifts the date) · next: P5-T3
+- 2026-10-02 · P5-T3 · /forecast: headline (in 60 days + lowest point + what caused it), run-out warning, 90-day SVG line zoomed to the real range with amounts and dates, biggest ins / outs, the assumptions word for word; owner + viewer only by default (FORECAST_ROLES, explicit list instead of a rank), link on Home for those roles; 302 unit/DB + 42 e2e pass · next: P5-T4
+- 2026-10-02 · P5-T4 · renewal_pipeline view + /customers/renewals (30 / 60 days, risky first): paid late last time, reminders not sent yet (stands in for "unread" — sending is by hand, nobody knows what was read), pays in parts, recently paused; open customer + add a reminder (owner/operator); flags tested one by one on seeded customers; 304 unit/DB + 43 e2e pass · next: P5-T5
+- 2026-10-02 · P5-T5 · weekly summary written by the app (cash, in/out last Mon–Sun, who is late, health, bills marked paid without a transfer, balance mismatches) at Settings → Weekly summary, copy or hand to Cowork; automatic Monday WhatsApp held like all sending. Found: each e2e run leaves one permanent "marked paid" payment in the dev database (removed 20) — Phase 6: run e2e on its own database; 308 unit/DB + 45 e2e pass · Phase 5 done

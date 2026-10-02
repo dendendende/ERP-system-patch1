@@ -216,6 +216,10 @@ describe("concurrency", () => {
       // removes what it made (and its audit rows) so the local database stays clean.
       await admin.query("set session_replication_role = replica");
       await admin.query(
+        "delete from reminders where invoice_id in (select id from invoices where customer_id = $1)",
+        [customerId],
+      );
+      await admin.query(
         "delete from audit_log where record_id in (select id::text from invoices where customer_id = $1) or record_id = $2",
         [customerId, customerId],
       );

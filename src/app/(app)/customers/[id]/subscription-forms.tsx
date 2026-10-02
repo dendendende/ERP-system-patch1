@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Card, Input, StatusPill } from "@/components/ui";
 import { createSubscription, type FormState, updateSubscription } from "./actions";
+import { useFormAction } from "@/components/use-form-action";
 
 const field = "h-10 rounded-lg border border-line bg-surface px-3 text-sm font-normal";
 const labelled = "flex flex-col gap-1.5 text-sm font-medium";
@@ -113,11 +114,11 @@ export function NewSubscriptionForm({
   customerId: string;
   today: string;
 }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(createSubscription, {});
+  const [state, action, pending] = useFormAction<FormState>(createSubscription, {});
   return (
     <Card className="flex flex-col gap-4">
       <h3 className="font-display text-lg">Set up a subscription</h3>
-      <form action={action} className="flex flex-wrap items-end gap-4">
+      <form onSubmit={action} className="flex flex-wrap items-end gap-4">
         <input type="hidden" name="customerId" value={customerId} />
         <Fields id="new" today={today} />
         <Button type="submit" disabled={pending}>
@@ -142,7 +143,7 @@ export function EditSubscription({
   today: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [state, action, pending] = useActionState<FormState, FormData>(updateSubscription, {});
+  const [state, action, pending] = useFormAction<FormState>(updateSubscription, {});
   // A save folds the panel away; the page below then shows what was saved. Nothing rewrites
   // the boxes while someone is still typing in them.
   const [saved, setSaved] = useState(state.at);
@@ -155,7 +156,7 @@ export function EditSubscription({
     <div className="w-full">
       <details className="text-sm" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
         <summary className="cursor-pointer text-muted underline underline-offset-4">Change</summary>
-        <form action={action} className="mt-3 flex flex-wrap items-end gap-3">
+        <form onSubmit={action} className="mt-3 flex flex-wrap items-end gap-3">
           <input type="hidden" name="customerId" value={customerId} />
           <input type="hidden" name="subscriptionId" value={subscription.id} />
           <Fields id={subscription.id} subscription={subscription} today={today} />

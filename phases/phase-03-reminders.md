@@ -31,10 +31,15 @@ Before sending any reminder, re-check at send time:
 5. Voided invoice → cancel all.
 - **Done when:** unit tests cover every rule, including "paid this morning, sync not yet run".
 
-### P3-T4 — Email adapter and templates
-- `MessageChannel` interface; email implementation (test mode). Invoice email includes a PDF invoice.
-- Templates in Bahasa Indonesia and English; company bank account number read from **config only**.
+### P3-T4a — Message templates
+- Templates in Bahasa Indonesia and English (the customer's language, Indonesian by default);
+  company bank account number read from **config only**.
 - Every template includes: "We only accept payment to [account]. We will never change it by message."
+- **Done when:** unit tests show every template, in both languages, carries the fixed account and the warning.
+
+### P3-T4b — Email channel with PDF invoice
+- `MessageChannel` email implementation (test mode: the local Mailpit inbox until a provider key
+  exists). Invoice email includes a PDF invoice.
 - **Done when:** emails render correctly in test inbox.
 
 ### P3-T5 — WhatsApp adapter and templates

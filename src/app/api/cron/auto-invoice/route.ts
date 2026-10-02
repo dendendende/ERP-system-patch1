@@ -8,7 +8,12 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   if (!authorized(request)) return new Response("Unauthorized", { status: 401 });
 
-  const { data: created, error } = await createAdminClient().rpc("create_due_invoices", {});
+  const db = createAdminClient();
+  const { data: created, error } = await db.rpc("create_due_invoices", {});
   if (error) return Response.json({ error: error.message }, { status: 500 });
+
+  // The daily health snapshot rides on the same daily run.
+  const { error: healthError } = await db.rpc("take_health_snapshot", {});
+  if (healthError) return Response.json({ created, error: healthError.message }, { status: 500 });
   return Response.json({ created });
 }

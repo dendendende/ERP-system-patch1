@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { canAccess, isSessionExpired, requiredRole } from "@/lib/auth/routes";
+import { canAccess, isRestricted, isSessionExpired } from "@/lib/auth/routes";
 import type { Database } from "@/lib/database.types";
 
 const LAST_ACTIVE = "last_active";
@@ -63,7 +63,7 @@ export async function proxy(request: NextRequest) {
   }
   if (path.startsWith("/login")) return redirect("/");
 
-  if (requiredRole(path) !== "viewer") {
+  if (isRestricted(path)) {
     const { data } = await supabase.from("users").select("role").eq("id", user.id).single();
     if (!canAccess(data?.role, path)) return redirect("/forbidden");
   }

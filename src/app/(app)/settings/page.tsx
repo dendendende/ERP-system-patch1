@@ -14,6 +14,21 @@ const SECTIONS = [
     "/settings/categories",
     "What your money is filed under, and the rules that label it automatically. Owner only.",
   ],
+  [
+    "Reminders",
+    "/settings/reminders",
+    "When customers hear from us about a bill, and what the messages say. Owner only.",
+  ],
+  [
+    "Health limits",
+    "/settings/health",
+    "Where each business health check turns from healthy to warning to danger. Owner only.",
+  ],
+  [
+    "Weekly summary",
+    "/settings/weekly-summary",
+    "Last week in one message, ready to copy or hand to Cowork. Owner only.",
+  ],
 ] as const;
 
 export default function SettingsPage() {
@@ -33,7 +48,7 @@ export default function SettingsPage() {
         ))}
       </Card>
       <p className="text-sm text-muted">
-        Categories and rules, reminders, team and roles arrive in later phases.
+        Team and roles arrive in a later phase.
       </p>
     </div>
   );

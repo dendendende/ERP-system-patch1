@@ -38,16 +38,21 @@ test("an operator says which bill a transfer paid, but can't mark one paid", asy
   await card.locator("summary").click();
   await expect(card.getByRole("button", { name: "Mark paid" })).toHaveCount(0);
 
-  // the first incoming transfer that isn't matched to a bill yet
-  for (let i = 0; ; i++) {
-    await page.goto("/money?show=in");
-    const rows = page.getByRole("region", { name: "Transactions" }).getByRole("link");
-    expect(i, "no unmatched transfer to match").toBeLessThan(await rows.count());
-    await rows.nth(i).click();
-    await page.waitForURL(/\/money\/[0-9a-f-]+/);
-    await expect(page.getByRole("heading", { name: "Label" })).toBeVisible();
-    if (await page.getByRole("heading", { name: "Which bill did this pay?" }).isVisible()) break;
-  }
+  // a transfer arrives that the engine can't place by itself (not the exact amount, no number)
+  const ref = `HANDMATCH${Date.now()}`;
+  await page.goto("/money/import");
+  await page.getByLabel("Statement file (CSV)").setInputFiles({
+    name: `${ref}.csv`,
+    mimeType: "text/csv",
+    buffer: Buffer.from(`date,description,amount\n2026-09-20,"TRSF CR ${ref} ${CUSTOMER.toUpperCase()}",50000\n`),
+  });
+  await page.getByRole("button", { name: "Check file" }).click();
+  await page.getByRole("button", { name: /^Import \d+ new$/ }).click();
+  await expect(page.getByText(/Added \d+ new transactions/)).toBeVisible();
+
+  await page.goto(`/money?q=${ref}`);
+  await page.getByRole("region", { name: "Transactions" }).getByRole("link").first().click();
+  await expect(page.getByRole("heading", { name: "Which bill did this pay?" })).toBeVisible();
 
   await page.getByRole("group", { name: "Bills waiting for money" }).getByText(number).click();
   await page.getByLabel("How much of this transfer?").fill("50.000");
@@ -59,6 +64,13 @@ test("an operator says which bill a transfer paid, but can't mark one paid", asy
   await page.getByRole("link", { name: CUSTOMER }).click();
   await expect(billCard(page, number).getByText("Partly paid")).toBeVisible();
   await expect(billCard(page, number).getByText("Rp 50.000")).toBeVisible();
+
+  // tidy up: cancel the test bill so bills from test runs don't pile up as "waiting"
+  const card2 = billCard(page, number);
+  await card2.locator("summary").click();
+  await card2.getByLabel("Cancel this bill — why?").fill("End of test");
+  await card2.getByRole("button", { name: "Cancel bill" }).click();
+  await expect(card2.getByText("Cancelled")).toBeVisible();
 });
 
 test("the owner marks a bill paid without a transfer, giving a reason", async ({

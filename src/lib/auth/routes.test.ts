@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canAccess, isSessionExpired, requiredRole } from "./routes";
+import { canAccess, forecastRoles, isRestricted, isSessionExpired, requiredRole } from "./routes";
 
 describe("route roles", () => {
   it("an operator cannot access owner-only routes", () => {
@@ -40,5 +40,20 @@ describe("isSessionExpired", () => {
     expect(isSessionExpired(0, 31 * min, 30)).toBe(true);
     expect(isSessionExpired(0, 30 * min, 30)).toBe(false);
     expect(isSessionExpired(null, 999 * min, 30)).toBe(false);
+  });
+});
+
+describe("forecast access", () => {
+  it("owner and viewer yes, operator no — by default", () => {
+    expect(canAccess("owner", "/forecast")).toBe(true);
+    expect(canAccess("viewer", "/forecast")).toBe(true);
+    expect(canAccess("operator", "/forecast")).toBe(false);
+    expect(isRestricted("/forecast")).toBe(true);
+  });
+
+  it("configurable", () => {
+    expect(forecastRoles({ FORECAST_ROLES: "owner, operator" })).toEqual(["owner", "operator"]);
+    expect(forecastRoles({ FORECAST_ROLES: "owner,nobody" })).toEqual(["owner"]);
+    expect(forecastRoles({})).toEqual(["owner", "viewer"]);
   });
 });

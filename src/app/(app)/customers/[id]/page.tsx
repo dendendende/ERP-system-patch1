@@ -5,6 +5,8 @@ import { customerHeadline, longDay } from "@/lib/customer-summary";
 import { formatRupiah } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { EditInvoice, NewInvoiceForm } from "./invoice-forms";
+import { SendReminderNow } from "./reminder-controls";
+import { Reminders } from "./reminders";
 import { EditSubscription, NewSubscriptionForm } from "./subscription-forms";
 
 export const metadata = { title: "Customer · Cashflow" };
@@ -56,7 +58,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
     { data: subscriptions },
     { data: me },
   ] = await Promise.all([
-      supabase.from("customers").select("id, name, whatsapp_number, billing_email, notes").eq("id", id).maybeSingle(),
+      supabase.from("customers").select("id, name, whatsapp_number, billing_email, notes, reminders_paused").eq("id", id).maybeSingle(),
       supabase.from("customer_billing").select("still_owed::text, next_due, renews_on, is_late").eq("id", id).maybeSingle(),
       supabase
         .from("invoices")
@@ -159,6 +161,9 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
                 <p className="text-sm text-muted">
                   Sent {longDay(invoice.issued_on)} · due {longDay(invoice.due_on)}
                 </p>
+                {canBill && invoice.transfer_amount && !customer.reminders_paused ? (
+                  <SendReminderNow invoiceId={invoice.id} customerId={customer.id} />
+                ) : null}
                 {canBill && invoice.status !== "void" ? (
                   <EditInvoice
                     invoiceId={invoice.id}
@@ -213,10 +218,8 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
       </section>
 
       <section aria-label="Reminders" className="flex flex-col gap-3">
-        <h2 className="font-display text-xl">Reminders</h2>
-        <EmptyState title="Coming soon">
-          Reminders sent by WhatsApp and email will show up here, newest first.
-        </EmptyState>
+        <h2 className="font-display text-xl">What we&apos;ve sent them</h2>
+        <Reminders customerId={customer.id} paused={customer.reminders_paused} canAct={canBill} />
       </section>
 
       {customer.notes ? (

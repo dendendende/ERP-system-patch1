@@ -63,9 +63,14 @@ export default async function MoneyPage({ searchParams }: PageProps<"/money">) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="font-display text-3xl md:text-4xl">Money in &amp; out</h1>
-        <Link href="/money/import" className="text-sm underline underline-offset-4">
-          Import a bank statement
-        </Link>
+        <div className="flex gap-4">
+          <Link href="/money/regular-costs" className="text-sm underline underline-offset-4">
+            Regular costs
+          </Link>
+          <Link href="/money/import" className="text-sm underline underline-offset-4">
+            Import a bank statement
+          </Link>
+        </div>
       </div>
 
       <NeedsLabelInbox />

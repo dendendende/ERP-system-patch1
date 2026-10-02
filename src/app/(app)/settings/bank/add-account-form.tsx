@@ -1,15 +1,16 @@
 "use client";
 
-import { useActionState } from "react";
+
 import { Button, Card, Input, StatusPill } from "@/components/ui";
 import { addBankAccount, type BankFormState } from "./actions";
+import { useFormAction } from "@/components/use-form-action";
 
 export function AddAccountForm() {
-  const [state, action, pending] = useActionState<BankFormState, FormData>(addBankAccount, {});
+  const [state, action, pending] = useFormAction<BankFormState>(addBankAccount, {});
   return (
     <Card className="flex flex-col gap-4">
       <h2 className="font-display text-xl">Add an account</h2>
-      <form action={action} className="flex flex-col gap-4">
+      <form onSubmit={action} className="flex flex-col gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Input label="Bank" name="bank_name" placeholder="BCA" required />
           <Input

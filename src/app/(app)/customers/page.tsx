@@ -51,7 +51,12 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-display text-3xl md:text-4xl">Customers &amp; billing</h1>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h1 className="font-display text-3xl md:text-4xl">Customers &amp; billing</h1>
+        <Link href="/customers/renewals" className="text-sm underline underline-offset-4">
+          Renewals coming up
+        </Link>
+      </div>
 
       <form method="get" action="/customers" className="flex flex-col gap-3">
         <FilterTabs name="show" value={show} options={TABS} label="Show" />

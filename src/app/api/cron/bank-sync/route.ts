@@ -50,6 +50,10 @@ export async function GET(request: Request) {
   const { data: matched, error: matchError } = await db.rpc("match_payments");
   if (matchError) console.error(`payment matching failed: ${matchError.message}`);
 
+  // Does our copy add up to the bank's balances? One row per account per day, updated each run.
+  const { error: checkError } = await db.rpc("check_balances", {});
+  if (checkError) console.error(`balance check failed: ${checkError.message}`);
+
   // Non-200 when anything failed, so cron monitoring flags it.
   const ok = results.every((r) => r.ok) && !matchError;
   return Response.json({ results, matched }, { status: ok ? 200 : 500 });

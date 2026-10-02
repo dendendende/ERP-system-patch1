@@ -54,6 +54,7 @@ export default async function TransactionPage({ params }: PageProps<"/money/[id]
 
   // Money coming in that hasn't been matched yet: offer the bills it could belong to.
   let candidates: Candidate[] = [];
+  const description = tx.description_raw.toLowerCase();
   if (isIn && canEdit && tx.payments.length === 0) {
     const [{ data: fits }, { data: waiting }] = await Promise.all([
       supabase.rpc("invoice_candidates", { p_bank_transaction_id: tx.id }),
@@ -77,8 +78,16 @@ export default async function TransactionPage({ params }: PageProps<"/money/[id]
         transferAmount: i.transfer_amount ?? i.amount_due,
         fits: strong.has(i.id),
       }))
-      // the ones the engine thinks fit go first, then whatever is due soonest
-      .sort((a, b) => Number(b.fits) - Number(a.fits))
+      // the ones the engine thinks fit first, then bills of a customer the bank description
+      // names, then whatever is due soonest
+      .map((c) => ({
+        c,
+        rank:
+          (c.fits ? 2 : 0) +
+          (c.customer && description.includes(c.customer.toLowerCase()) ? 1 : 0),
+      }))
+      .sort((a, b) => b.rank - a.rank)
+      .map(({ c }) => c)
       .slice(0, 8);
   }
   const status = STATUS[entry.status] ?? STATUS.needs_label;

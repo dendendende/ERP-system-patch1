@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect } from "react";
+import { useEffect } from "react";
 import { Button, Card, Input, StatusPill } from "@/components/ui";
 import { formatRupiah } from "@/lib/money";
 import { matchToInvoice, type MatchState } from "./actions";
+import { useFormAction } from "@/components/use-form-action";
 
 export type Candidate = {
   id: string;
@@ -27,7 +28,7 @@ export function MatchToInvoice({
   amount: string;
   candidates: Candidate[];
 }) {
-  const [state, action, pending] = useActionState<MatchState, FormData>(matchToInvoice, {});
+  const [state, action, pending] = useFormAction<MatchState>(matchToInvoice, {});
   const router = useRouter();
   useEffect(() => {
     if (state.at) router.refresh();
@@ -44,7 +45,7 @@ export function MatchToInvoice({
     <Card className="flex flex-col gap-4">
       <h2 className="font-display text-xl">Which bill did this pay?</h2>
       {candidates.length ? (
-        <form action={action} className="flex flex-col gap-4">
+        <form onSubmit={action} className="flex flex-col gap-4">
           <input type="hidden" name="transactionId" value={transactionId} />
           <input type="hidden" name="entryId" value={entryId} />
           <div className="flex flex-col gap-2" role="group" aria-label="Bills waiting for money">

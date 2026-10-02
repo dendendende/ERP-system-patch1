@@ -5,13 +5,16 @@
 
 ---
 
-### P5-T1 — Recurring expenses
+### P5-T1a — Recurring expenses: table and pattern detection
 - `recurring_expenses`: `id`, `name`, `category_id`, `expected_amount bigint`, `frequency` (`monthly` |
   `quarterly` | `yearly`), `day_of_month`, `start_date`, `end_date null`, `is_active`.
 - Suggest recurring expenses from detected patterns in entries (same payee, similar amount, regular interval);
   owner confirms — never auto-create.
-- Screen: list, add, edit, confirm suggestions.
 - **Done when:** pattern detection tests pass on seeded salary/rent data.
+
+### P5-T1b — Recurring expenses screen
+- Screen: list, add, edit, confirm suggestions.
+- **Done when:** the owner confirms a suggestion and edits an expense; others can only look.
 
 ### P5-T2 — Forecast engine **[REVIEW]**
 - Daily projection for the next 90 days starting from today's bank balance:
