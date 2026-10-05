@@ -9,7 +9,13 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
     <AuthCard
       title="Sign in"
       intro={
-        reason === "timeout" ? "You were signed out after a while without activity." : undefined
+        reason === "timeout"
+          ? "You were signed out after a while without activity."
+          : reason === "link"
+            ? "That link has expired or was already used. Ask the owner for a new one."
+            : reason === "too-many"
+              ? "Too many tries. Wait 15 minutes and try again."
+              : undefined
       }
     >
       <LoginForm />

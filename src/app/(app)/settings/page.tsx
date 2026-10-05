@@ -4,6 +4,7 @@ import { Card } from "@/components/ui";
 export const metadata = { title: "Settings · Cashflow" };
 
 const SECTIONS = [
+  ["Team", "/settings/team", "Who can use the app and what they can do. Owner only."],
   [
     "Bank connections",
     "/settings/bank",
@@ -29,6 +30,11 @@ const SECTIONS = [
     "/settings/weekly-summary",
     "Last week in one message, ready to copy or hand to Cowork. Owner only.",
   ],
+  [
+    "Change history",
+    "/settings/audit-log",
+    "Who changed what and when, with the value before. Owner only.",
+  ],
 ] as const;
 
 export default function SettingsPage() {
@@ -47,9 +53,6 @@ export default function SettingsPage() {
           </Link>
         ))}
       </Card>
-      <p className="text-sm text-muted">
-        Team and roles arrive in a later phase.
-      </p>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { staleAfterHours } from "@/lib/bank/sync-status";
 import { homeHeadline, trendSentence } from "@/lib/home";
 import { formatRupiah, formatRupiahShort } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
+import { NewDevices } from "./new-devices";
 import { CallTheseCustomers, RemindersToSend, TodayActivity } from "./today";
 
 export const metadata = { title: "Home · Cashflow" };
@@ -132,6 +133,8 @@ export default async function HomePage() {
           </p>
         </Card>
       ) : null}
+
+      {me.data?.role === "owner" ? <NewDevices /> : null}
 
       <div className="flex flex-col gap-3">
         <h1 className="font-display text-3xl md:text-4xl">Home</h1>

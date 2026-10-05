@@ -55,11 +55,15 @@ describe("audit trigger", () => {
 
   it("logs deletes with the full old row", async () => {
     await withRollback(async (db) => {
-      const id = await createUser(db, "viewer");
-      await db.query("delete from users where id = $1", [id]);
+      // users are never deleted (P6-T2), so use another audited table
+      const { rows } = await db.query(
+        "insert into categories (name, type, report_group) values ('Audit delete test', 'out', 'other') returning id",
+      );
+      const id = rows[0].id;
+      await db.query("delete from categories where id = $1", [id]);
       const last = (await auditRows(db, id)).at(-1);
       expect(last).toMatchObject({ action: "delete", new_value: null });
-      expect(last.old_value).toMatchObject({ id, role: "viewer" });
+      expect(last.old_value).toMatchObject({ id, name: "Audit delete test" });
     });
   });
 });

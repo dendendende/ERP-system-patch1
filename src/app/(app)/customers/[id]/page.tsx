@@ -57,8 +57,9 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
     { data: invoices },
     { data: subscriptions },
     { data: me },
+    { data: contact },
   ] = await Promise.all([
-      supabase.from("customers").select("id, name, whatsapp_number, billing_email, notes, reminders_paused").eq("id", id).maybeSingle(),
+      supabase.from("customers").select("id, name, notes, reminders_paused").eq("id", id).maybeSingle(),
       supabase.from("customer_billing").select("still_owed::text, next_due, renews_on, is_late").eq("id", id).maybeSingle(),
       supabase
         .from("invoices")
@@ -79,6 +80,8 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
         .select("role")
         .eq("id", user?.id ?? "")
         .maybeSingle(),
+      // phone and email: owner and operator only (empty for viewers — the database decides)
+      supabase.rpc("customer_contacts").eq("customer_id", id).maybeSingle(),
     ]);
   if (!customer) notFound();
   const canBill = me?.role === "owner" || me?.role === "operator";
@@ -106,9 +109,9 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
             renewsOn: billing?.renews_on ?? null,
           })}
         </p>
-        {customer.whatsapp_number || customer.billing_email ? (
+        {contact?.whatsapp_number || contact?.billing_email ? (
           <p className="text-sm text-muted">
-            {[customer.whatsapp_number, customer.billing_email].filter(Boolean).join(" · ")}
+            {[contact.whatsapp_number, contact.billing_email].filter(Boolean).join(" · ")}
           </p>
         ) : null}
       </div>

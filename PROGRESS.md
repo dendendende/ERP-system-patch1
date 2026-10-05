@@ -1,8 +1,8 @@
 # PROGRESS
 
-**Current phase:** 2
-**Current branch:** phase-2-billing (branched from phase-1-bank-data)
-**Last updated:** 2026-09-21
+**Current phase:** 6
+**Current branch:** main (phase file asks for `phase-6-launch` — branching is the human's call)
+**Last updated:** 2026-10-04
 
 ## How to use
 - Tick a task only after its tests pass and it is committed.
@@ -30,6 +30,8 @@
 ---
 - 2026-09-27 · Reminders remind the TEAM, not the customer (owner). Automatic sending is ON HOLD: the sender route refuses unless REMINDER_AUTO_SEND=on, and its cron is removed from vercel.json. Due reminders appear on Home ("Reminders to send") with the message ready to copy, open in email/WhatsApp, or hand to Cowork; a person marks it sent or skips it (who + when recorded). The same stop rules decide what is on the list. The automatic sender, email channel and templates stay in the code for later.
 - 2026-10-02 · Database test files now run one at a time (vitest fileParallelism: false). Several tests switch off every bank account or bill inside their transaction; in parallel those row locks occasionally deadlocked. ~13s for the full suite.
+- 2026-10-03 · Team invites are links the owner sends by hand (like reminders): the app makes a one-time Supabase invite link, nothing is emailed. Opening it shows a Continue button — the code is used only on that click, so chat apps previewing the link can't burn it. Switched off = is_active false (RLS: no role, no data, next query) + Supabase ban (proxy's getUser fails → signed out on the next page). Users can never be deleted (trigger, even via auth.users); the last active owner can't be demoted or switched off (locked check). Resolves the P0-T5 open question.
+- 2026-10-04 · Every page is rendered per request (root layout awaits connection()): the CSP nonce only reaches pages rendered at request time. Signed-out visitors (anon) have no grants in public at all; views are read-only. Customer contact columns are not granted to the team — read them through customer_contacts() (owner/operator); a new customers column must be added to the column grant (test fails otherwise). Login rate limits count failures only, in the database.
 
 ## Phase 0 — Setup
 - [x] P0-T1 Initialize project
@@ -102,9 +104,12 @@
 - [x] Phase 5 acceptance passed → merge — forecast math matches the hand calculation ✓, recurring expenses never auto-created ✓, weekly summary includes manual mark-as-paid ✓, P5-T2 reviewed ✓; automatic Monday sending held with the rest of the sending (not merged — git is the human's)
 
 ## Phase 6 — Security & launch
-- [ ] P6-T1 Audit log screen
-- [ ] P6-T2 Team and roles screen
-- [ ] P6-T3 Security hardening [REVIEW]
+- [x] P6-T1 Audit log screen
+- [x] P6-T2 Team and roles screen
+- [ ] P6-T3 Security hardening [REVIEW] — ⏸ awaiting review (T3a–T3c built; see docs/security.md)
+  - [x] P6-T3a Headers, RLS-coverage test, service-role guard, CI secret scan + dependency audit
+  - [x] P6-T3b Rate limiting and new-device sign-in alerts
+  - [x] P6-T3c Personal data by role, security notes (backups, restore drill, UU PDP)
 - [ ] P6-T4 First-time setup guide
 - [ ] P6-T5 Polish and accessibility
 - [ ] P6-T6 Production launch [REVIEW]
@@ -177,3 +182,8 @@
 - 2026-10-02 · P5-T3 · /forecast: headline (in 60 days + lowest point + what caused it), run-out warning, 90-day SVG line zoomed to the real range with amounts and dates, biggest ins / outs, the assumptions word for word; owner + viewer only by default (FORECAST_ROLES, explicit list instead of a rank), link on Home for those roles; 302 unit/DB + 42 e2e pass · next: P5-T4
 - 2026-10-02 · P5-T4 · renewal_pipeline view + /customers/renewals (30 / 60 days, risky first): paid late last time, reminders not sent yet (stands in for "unread" — sending is by hand, nobody knows what was read), pays in parts, recently paused; open customer + add a reminder (owner/operator); flags tested one by one on seeded customers; 304 unit/DB + 43 e2e pass · next: P5-T5
 - 2026-10-02 · P5-T5 · weekly summary written by the app (cash, in/out last Mon–Sun, who is late, health, bills marked paid without a transfer, balance mismatches) at Settings → Weekly summary, copy or hand to Cowork; automatic Monday WhatsApp held like all sending. Found: each e2e run leaves one permanent "marked paid" payment in the dev database (removed 20) — Phase 6: run e2e on its own database; 308 unit/DB + 45 e2e pass · Phase 5 done
+- 2026-10-03 · P6-T1 · /settings/audit-log "Change history" (owner): filter by who / what / dates, "All changes to this" narrows to one record; every change in plain words (src/lib/audit-describe.ts) — a DB test fails if any audited table or column has no words; fixed: audit rows for health limits had no record id (the table is keyed by signal) — the trigger now uses the primary key; older health-limit rows stay unnamed (log is insert-only); 315 unit/DB + 47 e2e pass · next: P6-T2
+- 2026-10-03 · P6-T2 · /settings/team (owner): add someone (name, email, role) → copyable sign-in link → they choose a password + set up 2FA; change role, switch off / back on, new link for people who haven't joined (never for someone with 2FA set up — no account takeover); 5 DB tests (immediate access loss, audited role change with actor, owner-only, never delete, last owner incl. self) + e2e invite → join → link reuse refused → switch off → signed out; e2e removes its invitee afterwards; 320 unit/DB + 49 e2e pass · next: P6-T3 [REVIEW]
+- 2026-10-04 · P6-T3a · CSP with per-page nonce + HSTS/frame/nosniff headers (e2e on the production build, no CSP violations); rls-coverage test (tables without RLS, definer views, anything anon can read/run, writable views) — it found anon grants on 7 views and 21 functions, removed; secrets test (admin client server-only, no NEXT_PUBLIC_ secrets); CI: pnpm audit --prod + gitleaks over full history; audit found a critical Next.js advisory → 16.3.5 → 16.3.6 · next: T3b
+- 2026-10-04 · P6-T3b · login: 20 failed per IP / 10 per email per 15 min (database counters, failures only); invite links 10 failed per IP; new-device sign-ins recorded by the proxy (insert-only) and shown to the owner on Home; 2FA codes rate-limited by Supabase per browser IP · next: T3c
+- 2026-10-04 · P6-T3c · customer phone/email for owner + operator only (column rights + customer_contacts(); team lists and customer page/PDF use it); change history except labels/subscriptions owner-only; docs/security.md: checklist with how each item is tested, local restore drill (counts, money total, RLS/policies/triggers identical), UU PDP retention table with 3 owner decisions; 336 unit/DB + 54 e2e pass · ⏸ STOPPED for human review of P6-T3

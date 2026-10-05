@@ -593,6 +593,24 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          failures: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          failures: number
+          key: string
+          window_start: string
+        }
+        Update: {
+          failures?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       recurring_expenses: {
         Row: {
           category_id: string | null
@@ -827,6 +845,41 @@ export type Database = {
           },
         ]
       }
+      sign_in_devices: {
+        Row: {
+          device_id: string
+          first_seen: string
+          id: number
+          ip: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          device_id: string
+          first_seen?: string
+          id?: never
+          ip?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          device_id?: string
+          first_seen?: string
+          id?: never
+          ip?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sign_in_devices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           created_at: string
@@ -906,18 +959,21 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_active: boolean
           name: string
           role: Database["public"]["Enums"]["app_role"]
         }
         Insert: {
           created_at?: string
           id: string
+          is_active?: boolean
           name?: string
           role?: Database["public"]["Enums"]["app_role"]
         }
         Update: {
           created_at?: string
           id?: string
+          is_active?: boolean
           name?: string
           role?: Database["public"]["Enums"]["app_role"]
         }
@@ -1238,6 +1294,14 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      customer_contacts: {
+        Args: never
+        Returns: {
+          billing_email: string
+          customer_id: string
+          whatsapp_number: string
+        }[]
+      }
       enable_audit: { Args: { target: unknown }; Returns: undefined }
       fail_stale_reminder_claims: { Args: never; Returns: number }
       free_unique_code: { Args: { p_base: number }; Returns: number }
@@ -1333,6 +1397,10 @@ export type Database = {
         }[]
       }
       payee_pattern: { Args: { p_description: string }; Returns: string }
+      record_failure: {
+        Args: { p_key: string; p_window_seconds: number }
+        Returns: undefined
+      }
       record_reminder_result: {
         Args: {
           p_amount_shown?: number
@@ -1393,6 +1461,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      too_many_failures: {
+        Args: { p_key: string; p_max: number; p_window_seconds: number }
+        Returns: boolean
       }
       transaction_unapplied: {
         Args: { p_bank_transaction_id: string }

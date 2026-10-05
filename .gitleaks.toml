@@ -1,0 +1,8 @@
+# Secret scanning (CI: gitleaks). Default rules, minus folders that were once committed by
+# mistake and hold only third-party code and build output.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "dependencies and build output tracked before .gitignore"
+paths = ['''^node_modules/''', '''^\.next/''']

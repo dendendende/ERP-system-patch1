@@ -27,6 +27,10 @@
 - [ ] Daily encrypted backups confirmed + one restore test performed
 - [ ] Personal data (phone, email) access limited by role; data retention note for UU PDP
 - **Done when:** every box ticked and human signs off.
+- Split (too big for one change):
+  - P6-T3a Security headers, RLS-coverage test, service-role-key guard, secret scanning + dependency audit in CI
+  - P6-T3b Rate limiting (login, invite links) and new-device sign-in alerts for the owner
+  - P6-T3c Personal data by role, security notes (backups + restore drill, database access, UU PDP retention)
 
 ### P6-T4 — First-time setup guide
 - Step-by-step: connect bank → import/sync → label first transactions → add customers & subscriptions →
