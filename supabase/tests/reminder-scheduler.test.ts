@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { actAs, actAsAdmin, createUser, tryQuery, withRollback } from "./db";
 
 const DB_URL =
-  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:44322/postgres";
 
 async function customer(db: Client) {
   return (

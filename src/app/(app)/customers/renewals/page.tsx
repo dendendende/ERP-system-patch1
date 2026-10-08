@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button, Card, EmptyState, FilterTabs, StatusPill } from "@/components/ui";
+import { Card, EmptyState, FilterTabs, StatusPill } from "@/components/ui";
 import { formatRupiah } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { SendReminderNow } from "../[id]/reminder-controls";
@@ -35,7 +35,11 @@ export default async function RenewalsPage({ searchParams }: PageProps<"/custome
       )
       .lte("days_until", Number(within))
       .order("renews_on"),
-    supabase.from("users").select("role").eq("id", user?.id ?? "").maybeSingle(),
+    supabase
+      .from("users")
+      .select("role")
+      .eq("id", user?.id ?? "")
+      .maybeSingle(),
   ]);
   const canAct = me?.role === "owner" || me?.role === "operator";
   // risky ones first, then soonest
@@ -52,15 +56,17 @@ export default async function RenewalsPage({ searchParams }: PageProps<"/custome
           ← Customers &amp; billing
         </Link>
         <h1 className="font-display text-3xl md:text-4xl">Renewals coming up</h1>
-        <p className="text-muted">Subscriptions about to renew, the ones that look at risk first.</p>
+        <p className="text-muted">
+          Subscriptions about to renew, the ones that look at risk first.
+        </p>
       </div>
 
-      <form method="get" action="/customers/renewals" className="flex flex-wrap items-center gap-3">
-        <FilterTabs name="within" value={within} options={TABS} label="Renewing within" />
-        <Button type="submit" variant="secondary">
-          Show
-        </Button>
-      </form>
+      <FilterTabs
+        value={within}
+        options={TABS}
+        label="Renewing within"
+        href={(days) => `/customers/renewals?within=${days}`}
+      />
 
       {error ? (
         <p className="text-sm text-problem">Couldn&apos;t load renewals. Try again.</p>
@@ -72,7 +78,10 @@ export default async function RenewalsPage({ searchParams }: PageProps<"/custome
               <Card key={r.subscription_id} className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div>
-                    <Link href={`/customers/${r.customer_id}`} className="font-medium hover:underline underline-offset-4">
+                    <Link
+                      href={`/customers/${r.customer_id}`}
+                      className="font-medium hover:underline underline-offset-4"
+                    >
                       {r.customer_name}
                     </Link>
                     <p className="text-sm text-muted">
@@ -80,7 +89,9 @@ export default async function RenewalsPage({ searchParams }: PageProps<"/custome
                       {r.days_until === 0 ? " (today)" : ` (in ${r.days_until} days)`}
                     </p>
                   </div>
-                  <span className="text-sm tabular-nums">{formatRupiah(BigInt(r.price ?? "0"))}</span>
+                  <span className="text-sm tabular-nums">
+                    {formatRupiah(BigInt(r.price ?? "0"))}
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {flags.length ? (
@@ -101,7 +112,9 @@ export default async function RenewalsPage({ searchParams }: PageProps<"/custome
           })}
         </section>
       ) : (
-        <EmptyState title="Nothing renewing">No subscription renews in the next {within} days.</EmptyState>
+        <EmptyState title="Nothing renewing">
+          No subscription renews in the next {within} days.
+        </EmptyState>
       )}
     </div>
   );

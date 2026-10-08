@@ -125,6 +125,19 @@ describe("the invoicing job", () => {
     });
   });
 
+  it("a renewal day already past (job missed days) is billed due today, and nobody is skipped", async () => {
+    await withRollback(async (db) => {
+      const missed = await subscription(db, -3);
+      const onTime = await subscription(db, 5);
+      expect(await runJob(db)).toBeGreaterThanOrEqual(2);
+      const today = (await db.query("select jakarta_today()::text t")).rows[0].t;
+      expect(await invoicesFor(db, missed.id)).toEqual([
+        { issued_on: today, due_on: today, base_amount: "331000000" },
+      ]);
+      expect(await invoicesFor(db, onTime.id)).toHaveLength(1);
+    });
+  });
+
   it("only the job can run it", async () => {
     await withRollback(async (db) => {
       await actAs(db, await createUser(db, "owner"));

@@ -5,7 +5,7 @@ import { expect, type Page } from "@playwright/test";
 import { Client } from "pg";
 
 const DB_URL =
-  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:44322/postgres";
 const PASSWORD = "Local-dev-pass1"; // seed.sql, local only
 
 export function totp(base32Secret: string, now = Date.now()): string {

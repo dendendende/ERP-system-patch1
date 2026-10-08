@@ -48,7 +48,7 @@ function channelsFromEnv(db: Db): Record<string, MessageChannel> | null {
         email: emailChannel({
           account: companyAccount(),
           loadBill: billLoader(db),
-          transport: mailpitTransport(process.env.MAILPIT_URL ?? "http://127.0.0.1:54324", {
+          transport: mailpitTransport(process.env.MAILPIT_URL ?? "http://127.0.0.1:44324", {
             email: process.env.EMAIL_FROM ?? "tagihan@example.test",
             name: process.env.COMPANY_NAME ?? "Cashflow",
           }),

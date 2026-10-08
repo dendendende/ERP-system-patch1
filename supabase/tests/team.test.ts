@@ -97,3 +97,38 @@ describe("team", () => {
     });
   });
 });
+
+describe("2-step sign-in switch", () => {
+  it("while required, a session without 2FA sees nothing; switched off, it works like before", async () => {
+    await withRollback(async (db) => {
+      const owner = await createUser(db, "owner");
+      await actAs(db, owner, "aal1");
+      expect((await db.query("select public.current_app_role() r")).rows[0].r).toBeNull();
+      // and can't switch it off without having passed 2FA
+      expect(
+        (await tryQuery(db, "update security_settings set require_two_factor = false")).rowCount,
+      ).toBe(0);
+
+      await actAs(db, owner); // aal2
+      await db.query("update security_settings set require_two_factor = false");
+      await actAs(db, owner, "aal1");
+      expect((await db.query("select public.current_app_role() r")).rows[0].r).toBe("owner");
+
+      await actAsAdmin(db);
+      const { rows } = await db.query(
+        `select actor_id, new_value from audit_log where table_name = 'security_settings'
+          order by id desc limit 1`,
+      );
+      expect(rows[0]).toEqual({ actor_id: owner, new_value: { require_two_factor: false } });
+    });
+  });
+
+  it("only the owner can change it", async () => {
+    await withRollback(async (db) => {
+      await actAs(db, await createUser(db, "operator"));
+      expect(
+        (await tryQuery(db, "update security_settings set require_two_factor = false")).rowCount,
+      ).toBe(0);
+    });
+  });
+});

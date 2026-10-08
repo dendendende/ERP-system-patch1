@@ -42,7 +42,14 @@ export function CostForm({ cost, today, idKey }: { cost?: Cost; today: string; i
     <form onSubmit={action} className="flex flex-col gap-3">
       {cost?.id ? <input type="hidden" name="id" value={cost.id} /> : null}
       <div className="flex flex-wrap items-end gap-3">
-        <Input label="Name" name="name" id={`name-${idKey}`} defaultValue={cost?.name} placeholder="Office rent" className="w-56" />
+        <Input
+          label="Name"
+          name="name"
+          id={`name-${idKey}`}
+          defaultValue={cost?.name}
+          placeholder="Office rent"
+          className="w-56"
+        />
         <Input
           label="Amount (Rp)"
           name="amount"
@@ -62,15 +69,32 @@ export function CostForm({ cost, today, idKey }: { cost?: Cost; today: string; i
         </label>
         <label className={labelled}>
           On day
-          <input type="number" name="day" min={1} max={31} defaultValue={cost?.day_of_month ?? 1} className={`${field} w-20 tabular-nums`} />
+          <input
+            type="number"
+            name="day"
+            min={1}
+            max={31}
+            defaultValue={cost?.day_of_month ?? 1}
+            className={`${field} w-20 tabular-nums`}
+          />
         </label>
         <label className={labelled}>
           Since
-          <input type="date" name="startDate" defaultValue={cost?.start_date ?? today} className={`${field} tabular-nums`} />
+          <input
+            type="date"
+            name="startDate"
+            defaultValue={cost?.start_date ?? today}
+            className={`${field} tabular-nums`}
+          />
         </label>
         <label className={labelled}>
           Until (optional)
-          <input type="date" name="endDate" defaultValue={cost?.end_date ?? ""} className={`${field} tabular-nums`} />
+          <input
+            type="date"
+            name="endDate"
+            defaultValue={cost?.end_date ?? ""}
+            className={`${field} tabular-nums`}
+          />
         </label>
         {cost?.id ? (
           <label className={labelled}>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button, Card, EmptyState, FilterTabs, StatusPill, TableRow } from "@/components/ui";
 import { formatRupiah } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
+import { AddCustomerForm } from "./add-customer-form";
 
 export const metadata = { title: "Customers & billing · Cashflow" };
 
@@ -36,7 +37,9 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
   let query = supabase
     .from("customer_billing")
     // still_owed::text keeps rupiah exact: JSON numbers lose precision above 2^53
-    .select("id, name, still_owed::text, next_due, renews_on, is_late, is_renewing_soon, is_ongoing")
+    .select(
+      "id, name, still_owed::text, next_due, renews_on, is_late, is_renewing_soon, is_ongoing",
+    )
     .order("is_late", { ascending: false })
     .order("next_due", { ascending: true, nullsFirst: false })
     .order("name");
@@ -47,7 +50,18 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
   if (show === "ended") query = query.eq("is_ongoing", false);
   if (q) query = query.ilike("name", `%${q}%`);
 
-  const { data: rows, error } = await query;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const [{ data: rows, error }, { data: me }] = await Promise.all([
+    query,
+    supabase
+      .from("users")
+      .select("role")
+      .eq("id", user?.id ?? "")
+      .maybeSingle(),
+  ]);
+  const canAdd = me?.role === "owner" || me?.role === "operator";
 
   return (
     <div className="flex flex-col gap-6">
@@ -58,9 +72,19 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
         </Link>
       </div>
 
-      <form method="get" action="/customers" className="flex flex-col gap-3">
-        <FilterTabs name="show" value={show} options={TABS} label="Show" />
-        <div className="flex flex-wrap items-end gap-3">
+      {canAdd ? <AddCustomerForm /> : null}
+
+      <div className="flex flex-col gap-3">
+        <FilterTabs
+          value={show}
+          options={TABS}
+          label="Show"
+          href={(tab) =>
+            `/customers?${new URLSearchParams({ ...(tab !== "all" && { show: tab }), ...(q && { q }) })}`
+          }
+        />
+        <form method="get" action="/customers" className="flex flex-wrap items-end gap-3">
+          {show !== "all" ? <input type="hidden" name="show" value={show} /> : null}
           <label className="flex flex-col gap-1 text-sm">
             Search
             <input
@@ -72,10 +96,10 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
             />
           </label>
           <Button type="submit" variant="secondary">
-            Show
+            Search
           </Button>
-        </div>
-      </form>
+        </form>
+      </div>
 
       {error ? (
         <p className="text-sm text-problem">Couldn&apos;t load customers. Try again.</p>
@@ -88,7 +112,10 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
                 <TableRow
                   key={c.id}
                   primary={
-                    <Link href={`/customers/${c.id}`} className="hover:underline underline-offset-4">
+                    <Link
+                      href={`/customers/${c.id}`}
+                      className="hover:underline underline-offset-4"
+                    >
                       {c.name}
                     </Link>
                   }

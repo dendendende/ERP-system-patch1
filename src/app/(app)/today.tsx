@@ -26,7 +26,10 @@ export async function CallTheseCustomers() {
           <TableRow
             key={r.invoice_id}
             primary={
-              <Link href={`/customers/${r.customer_id}`} className="hover:underline underline-offset-4">
+              <Link
+                href={`/customers/${r.customer_id}`}
+                className="hover:underline underline-offset-4"
+              >
                 Call {r.customer_name}, {r.days_late} days late
               </Link>
             }
@@ -53,15 +56,20 @@ export async function RemindersToSend() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [{ data: rows, error }, { data: me }] = await Promise.all([
+  const [{ data: rows, error, count }, { data: me }] = await Promise.all([
     supabase
       .from("reminders_to_send")
       .select(
         "reminder_id, invoice_id, number, customer_id, customer_name, email, phone, language, template_key, kind, offset_days, due_on, amount_due::text, amount_to_transfer::text, still_owed::text, waiting_for_bank",
+        { count: "exact" },
       )
       .order("scheduled_for")
       .limit(30),
-    supabase.from("users").select("role").eq("id", user?.id ?? "").maybeSingle(),
+    supabase
+      .from("users")
+      .select("role")
+      .eq("id", user?.id ?? "")
+      .maybeSingle(),
   ]);
   if (error || !rows?.length) return null;
   const canAct = me?.role === "owner" || me?.role === "operator";
@@ -110,11 +118,17 @@ export async function RemindersToSend() {
                 ? `${r.offset_days} days late`
                 : (MESSAGE_NAME[r.template_key ?? ""] ?? "Reminder");
           return (
-            <div key={r.reminder_id} className="flex flex-col gap-3 border-b border-line px-4 py-4 last:border-b-0">
+            <div
+              key={r.reminder_id}
+              className="flex flex-col gap-3 border-b border-line px-4 py-4 last:border-b-0"
+            >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="font-medium">
                   {what} ·{" "}
-                  <Link href={`/customers/${r.customer_id}`} className="hover:underline underline-offset-4">
+                  <Link
+                    href={`/customers/${r.customer_id}`}
+                    className="hover:underline underline-offset-4"
+                  >
                     {r.customer_name}
                   </Link>{" "}
                   <span className="font-normal text-muted">· {r.number}</span>
@@ -151,6 +165,12 @@ export async function RemindersToSend() {
           );
         })}
       </Card>
+      {/* never cut the list off silently */}
+      {count && count > rows.length ? (
+        <p className="text-sm text-muted">
+          Showing the {rows.length} oldest of {count}. Send these and the rest move up.
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -169,11 +189,16 @@ export async function TodayActivity({ today }: { today: string }) {
       .limit(20),
     supabase
       .from("reminders")
-      .select("id, template_key, invoices (number, customer_id, customers (name)), reminder_schedule (kind)")
+      .select(
+        "id, template_key, invoices (number, customer_id, customers (name)), reminder_schedule (kind)",
+      )
       .gte("sent_at", since)
       .order("sent_at", { ascending: false })
       .limit(20),
-    supabase.from("entries").select("id", { count: "exact", head: true }).eq("status", "needs_label"),
+    supabase
+      .from("entries")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "needs_label"),
   ]);
 
   const items = [

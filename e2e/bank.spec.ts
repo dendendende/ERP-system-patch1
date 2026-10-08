@@ -3,7 +3,7 @@ import { Client } from "pg";
 import { signIn } from "./auth";
 
 const DB_URL =
-  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:44322/postgres";
 
 async function setLastSync(hoursAgo: number) {
   const db = new Client({ connectionString: DB_URL });

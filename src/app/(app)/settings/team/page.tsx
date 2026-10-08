@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Card, StatusPill } from "@/components/ui";
+import { Button, Card, StatusPill } from "@/components/ui";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { setTwoFactor } from "./actions";
 import { InviteForm, MemberControls } from "./team-forms";
 
 export const metadata = { title: "Team · Settings · Cashflow" };
@@ -18,6 +19,7 @@ export default async function TeamPage() {
     .select("id, name, role, is_active")
     .order("is_active", { ascending: false })
     .order("name");
+  const { data: twoFactor } = await supabase.rpc("two_factor_required");
   // Owner-only page (proxy). Email and whether someone finished joining (2-step sign-in set up)
   // live in the auth system; one lookup per person — listUsers leaves out the 2FA factors.
   const admin = createAdminClient();
@@ -38,6 +40,28 @@ export default async function TeamPage() {
           switched off, never removed, so their name stays on everything they did.
         </p>
       </div>
+
+      <Card className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-display text-xl">2-step sign-in</h2>
+          {twoFactor === false ? (
+            <StatusPill tone="attention">Off</StatusPill>
+          ) : (
+            <StatusPill tone="in">Required for everyone</StatusPill>
+          )}
+        </div>
+        <p className="text-sm text-muted">
+          {twoFactor === false
+            ? "Signing in needs only the password. Fine while you work alone; switch it on before you add people or go live."
+            : "Signing in needs the password and a 6-digit code from a phone app. This app handles the company's money, so keep it on once there's a team."}
+        </p>
+        <form action={setTwoFactor}>
+          <input type="hidden" name="required" value={String(twoFactor === false)} />
+          <Button type="submit" variant="secondary">
+            {twoFactor === false ? "Switch on for everyone" : "Switch off for now"}
+          </Button>
+        </form>
+      </Card>
 
       <Card className="flex flex-col gap-3">
         <h2 className="font-display text-xl">Add someone</h2>

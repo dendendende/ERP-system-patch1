@@ -20,7 +20,9 @@ test("the health pill leads to Business health", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "phone", "desktop covers the flow");
   await signIn(page, "e2e-owner@example.test");
   await page.goto("/");
-  const pill = page.getByRole("link", { name: /Business looks healthy|needs watching|needs attention/ });
+  const pill = page.getByRole("link", {
+    name: /Business looks healthy|needs watching|needs attention/,
+  });
   test.skip((await pill.count()) === 0, "no health snapshot taken yet in this database");
   await pill.click();
   await expect(page).toHaveURL(/\/health$/);
@@ -35,7 +37,32 @@ test("Business health asks five questions, worst first", async ({ page }, testIn
   test.skip((await questions.count()) === 0, "no health snapshot taken yet in this database");
   await expect(questions).toHaveCount(5);
   // worst first: once a card says Healthy, no later card is worse
-  const pills = await page.getByText(/^(Needs attention|Keep an eye on it|Healthy)$/).allInnerTexts();
-  const rank = { "Needs attention": 2, "Keep an eye on it": 1, Healthy: 0 } as Record<string, number>;
+  const pills = await page
+    .getByText(/^(Needs attention|Keep an eye on it|Healthy)$/)
+    .allInnerTexts();
+  const rank = { "Needs attention": 2, "Keep an eye on it": 1, Healthy: 0 } as Record<
+    string,
+    number
+  >;
   expect(pills.map((p) => rank[p])).toEqual([...pills.map((p) => rank[p])].sort((a, b) => b - a));
+});
+
+test("every number on Home opens the list behind it, already filtered", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "desktop covers the flow");
+  await signIn(page, "e2e-owner@example.test");
+  const month = page.getByRole("region", { name: "This month" });
+  for (const [cue, url] of [
+    [/^Came in this month: Rp/, /\/money\?dir=in&from=\d{4}-\d{2}-01&to=\d{4}-\d{2}-\d{2}$/],
+    [/^Went out this month: Rp/, /\/money\?dir=out&from=\d{4}-\d{2}-01/],
+    [/^Still owed to you: Rp/, /\/customers/],
+    [/^Need a label: \d+ transactions?/, /\/money\?status=needs_label$/],
+    [/^Paying late: \d+ customers?/, /\/customers\?show=late$/],
+  ] as const) {
+    await page.goto("/");
+    await month.getByRole("link", { name: cue }).click();
+    await expect(page).toHaveURL(url);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  }
 });

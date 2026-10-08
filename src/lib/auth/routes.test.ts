@@ -7,12 +7,15 @@ describe("route roles", () => {
     expect(canAccess("operator", "/settings/team/invite")).toBe(false);
     expect(canAccess("operator", "/settings/audit-log")).toBe(false);
     expect(canAccess("viewer", "/settings/team")).toBe(false);
+    expect(canAccess("operator", "/setup")).toBe(false);
     expect(canAccess("owner", "/settings/team")).toBe(true);
   });
 
   it("viewers cannot import statements", () => {
     expect(canAccess("viewer", "/money/import")).toBe(false);
     expect(canAccess("operator", "/money/import")).toBe(true);
+    expect(canAccess("viewer", "/money/new")).toBe(false);
+    expect(canAccess("operator", "/money/new")).toBe(true);
   });
 
   it("everyone signed in can open normal pages", () => {

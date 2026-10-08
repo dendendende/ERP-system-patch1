@@ -1,8 +1,9 @@
 import { EmptyState } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
+import { AddMoneyHeader } from "../import-prompt";
 import { ImportForm } from "./import-form";
 
-export const metadata = { title: "Import bank statement · Cashflow" };
+export const metadata = { title: "Add money in or out · Cashflow" };
 
 export default async function ImportPage() {
   const supabase = await createClient();
@@ -14,8 +15,8 @@ export default async function ImportPage() {
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
+      <AddMoneyHeader way="import" />
       <div>
-        <h1 className="font-display text-3xl md:text-4xl">Import bank statement</h1>
         <p className="text-sm text-muted">
           We check the file first and show what&apos;s new. Importing the same file twice never adds
           anything twice.

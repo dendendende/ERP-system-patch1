@@ -47,6 +47,21 @@ describe("daily balance check", () => {
     });
   });
 
+  it("money typed in by hand isn't the bank's: it never makes the balance disagree", async () => {
+    await withRulesOff(async (db) => {
+      const a = await account(db);
+      await row(db, a, "2031-06-01", "in", 100, 1100);
+      await db.query(
+        `insert into bank_transactions (bank_account_id, external_id, occurred_at, amount, direction, entered_by)
+         values ($1, 'hand:' || gen_random_uuid(), '2031-06-02T10:00:00+07', 999, 'out',
+                 (select id from users limit 1))`,
+        [a],
+      );
+      await row(db, a, "2031-06-03", "in", 50, 1150);
+      expect((await check(db)).status).toBe("ok");
+    });
+  });
+
   it("a transfer we never received → mismatch, with when it happened", async () => {
     await withRulesOff(async (db) => {
       const a = await account(db);

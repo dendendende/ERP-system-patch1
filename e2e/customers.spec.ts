@@ -9,8 +9,13 @@ test("the customer list filters by how each customer is doing", async ({ page },
   const list = page.getByRole("region", { name: "Customers" });
   const names = list.locator(".truncate.font-medium");
   const tab = (name: string) =>
-    page.getByRole("group", { name: "Show" }).getByText(name, { exact: true });
-  const show = () => page.getByRole("button", { name: "Show" }).click();
+    page.getByRole("navigation", { name: "Show" }).getByRole("link", { name, exact: true });
+  const search = () => page.getByRole("button", { name: "Search" }).click();
+  // a tab applies as soon as it is clicked — no button to press
+  const pick = async (name: string) => {
+    await tab(name).click();
+    await expect(tab(name)).toHaveAttribute("aria-current", "page");
+  };
 
   await expect(names.first()).toBeVisible();
   const all = await names.allInnerTexts();
@@ -22,8 +27,7 @@ test("the customer list filters by how each customer is doing", async ({ page },
     ["Active", "Active"],
     ["Ended", "Ended"],
   ] as const) {
-    await tab(filter).click();
-    await show();
+    await pick(filter);
     const rows = list.locator("div.flex.items-center");
     for (const row of await rows.all()) {
       if (label === "Active") {
@@ -36,14 +40,19 @@ test("the customer list filters by how each customer is doing", async ({ page },
   }
 
   // Search narrows to one customer
-  await tab("All").click();
+  await pick("All");
   await page.getByLabel("Search").fill(all[0].slice(0, 6));
-  await show();
+  await search();
+  await expect(page).toHaveURL(/q=/);
   for (const name of await names.allInnerTexts()) {
     expect(name.toLowerCase()).toContain(all[0].slice(0, 6).toLowerCase());
   }
 
+  // the search keeps the chosen tab
+  await pick("Late");
+  await expect(page).toHaveURL(/show=late.*q=|q=.*show=late/);
   await page.getByLabel("Search").fill("ZZZ NOBODY");
-  await show();
+  await search();
+  await expect(page).toHaveURL(/show=late/);
   await expect(page.getByText("No customers match what you asked for.")).toBeVisible();
 });

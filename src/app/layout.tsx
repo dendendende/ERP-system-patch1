@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { Newsreader, Schibsted_Grotesk } from "next/font/google";
+import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
-const newsreader = Newsreader({ variable: "--font-newsreader", subsets: ["latin"] });
-const schibsted = Schibsted_Grotesk({ variable: "--font-schibsted", subsets: ["latin"] });
+// one corporate family for text, headings and numbers (it has lined-up digits)
+const plex = IBM_Plex_Sans({
+  variable: "--font-plex",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
 
 export const metadata: Metadata = {
   title: "Cashflow",
@@ -16,7 +20,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // at request time; a page built ahead of time would have its scripts blocked.
   await connection();
   return (
-    <html lang="en" className={`${newsreader.variable} ${schibsted.variable} h-full antialiased`}>
+    <html lang="en" className={`${plex.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">{children}</body>
     </html>
   );

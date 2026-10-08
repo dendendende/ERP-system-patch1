@@ -46,3 +46,6 @@ export function parseRupiahInput(input: string): bigint | null {
   const amount = BigInt(digits);
   return amount > 0n ? amount : null;
 }
+
+/** The built-in category a mistaken hand entry is filed under; every total leaves it out. */
+export const CANCELLED_CATEGORY = "Cancelled (entered by mistake)";

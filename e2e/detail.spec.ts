@@ -7,10 +7,15 @@ test("editing a transaction shows up in its history with who and when", async ({
   test.skip(testInfo.project.name === "phone", "desktop covers the flow");
   await signIn(page, "e2e-operator@example.test");
 
-  // open the first transaction from the list
+  // open the first transaction the bank sent (not one typed in by hand)
   await page.goto("/money");
   const list = page.getByRole("region", { name: "Transactions" });
-  await list.getByRole("link").first().click();
+  await list
+    .locator("tbody tr[data-row]")
+    .filter({ hasNotText: "By hand" })
+    .first()
+    .getByRole("link")
+    .click();
   await expect(page).toHaveURL(/\/money\/[0-9a-f-]{36}$/);
 
   // raw bank data is shown and cannot be edited
@@ -36,7 +41,12 @@ test("a viewer can read a transaction but not change it", async ({ page }, testI
   test.skip(testInfo.project.name === "phone", "desktop covers the flow");
   await signIn(page, "e2e-viewer@example.test");
   await page.goto("/money");
-  await page.getByRole("region", { name: "Transactions" }).getByRole("link").first().click();
+  await page
+    .getByRole("region", { name: "Transactions" })
+    .locator("tbody")
+    .getByRole("link")
+    .first()
+    .click();
   await expect(page.getByText("only the team can change labels")).toBeVisible();
   await expect(page.getByRole("button", { name: "Save" })).toHaveCount(0);
 });

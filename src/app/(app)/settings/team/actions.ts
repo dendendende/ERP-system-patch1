@@ -135,3 +135,13 @@ export async function setActive(_prev: RowState, form: FormData): Promise<RowSta
   }
   return {};
 }
+
+/** Owner switches 2-step sign-in on or off for everyone (audited; RLS: owner only). */
+export async function setTwoFactor(form: FormData) {
+  const supabase = await createClient();
+  await supabase
+    .from("security_settings")
+    .update({ require_two_factor: form.get("required") === "true" })
+    .eq("id", true);
+  revalidatePath(PATH);
+}

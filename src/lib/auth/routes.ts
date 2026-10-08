@@ -7,12 +7,15 @@ const RANK: Record<Role, number> = { viewer: 0, operator: 1, owner: 2 };
 /** Longest matching prefix wins. Anything not listed is open to every signed-in role. */
 const ROUTE_ROLES: [prefix: string, role: Role][] = [
   ["/money/import", "operator"],
+  ["/money/new", "operator"],
+  ["/setup", "owner"],
   ["/settings/team", "owner"],
   ["/settings/audit-log", "owner"],
   ["/settings/categories", "owner"],
   ["/settings/reminders", "owner"],
   ["/settings/health", "owner"],
   ["/settings/weekly-summary", "owner"],
+  ["/settings/parallel-run", "owner"],
 ];
 
 export function requiredRole(pathname: string): Role {

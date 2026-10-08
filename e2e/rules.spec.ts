@@ -61,7 +61,7 @@ test("switching a rule off stops new labelling but leaves past entries alone", a
   await expect(list.getByText("Subscription income")).toHaveCount(1);
 
   // tidy up: label it, so test rows never pile up in the needs-label inbox for later runs
-  await list.getByRole("link").first().click();
+  await list.locator("tbody").getByRole("link").first().click();
   await page.getByLabel("What was this for?").selectOption({ label: "Other income" });
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Labelled by someone", { exact: true })).toBeVisible();

@@ -3,7 +3,7 @@ import { Client } from "pg";
 import { signIn, totp } from "./auth";
 
 const DB_URL =
-  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:44322/postgres";
 
 // People are never deleted by the app; the test removes its invitees (this run's and any left
 // by a failed run) so runs don't pile up.

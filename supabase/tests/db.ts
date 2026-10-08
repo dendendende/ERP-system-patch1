@@ -4,13 +4,15 @@ import { randomUUID } from "node:crypto";
 import { Client } from "pg";
 
 const DB_URL =
-  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:44322/postgres";
 
 export async function withRollback<T>(fn: (db: Client) => Promise<T>): Promise<T> {
   const db = new Client({ connectionString: DB_URL });
   await db.connect();
   try {
     await db.query("begin");
+    // Tests check the secure mode, whatever the local switch says (rolled back afterwards).
+    await db.query("update security_settings set require_two_factor = true");
     return await fn(db);
   } finally {
     await db.query("rollback").catch(() => {});

@@ -22,6 +22,12 @@ export const TABLES: Record<string, { label: string; plural: string; nameField?:
   categories: { label: "category", plural: "Categories", nameField: "name" },
   rules: { label: "labelling rule", plural: "Labelling rules", nameField: "pattern" },
   entries: { label: "label on a transaction", plural: "Transaction labels" },
+  // only money typed in by hand is audited here; what the bank sends is its own record
+  bank_transactions: {
+    label: "money entered by hand",
+    plural: "Money entered by hand",
+    nameField: "description_raw",
+  },
   customers: { label: "customer", plural: "Customers", nameField: "name" },
   subscriptions: { label: "subscription", plural: "Subscriptions", nameField: "plan_name" },
   invoices: { label: "bill", plural: "Bills", nameField: "number" },
@@ -29,6 +35,12 @@ export const TABLES: Record<string, { label: string; plural: string; nameField?:
   reminder_schedule: { label: "reminder step", plural: "Reminder steps", nameField: "kind" },
   health_thresholds: { label: "health limit", plural: "Health limits", nameField: "signal" },
   recurring_expenses: { label: "regular cost", plural: "Regular costs", nameField: "name" },
+  security_settings: { label: "sign-in setting", plural: "Sign-in settings" },
+  parallel_run_weeks: {
+    label: "parallel-run week from",
+    plural: "Parallel run",
+    nameField: "week_start",
+  },
 };
 
 const FIELD: Record<string, string> = {
@@ -50,6 +62,12 @@ const FIELD: Record<string, string> = {
   category_id: "category",
   is_recurring: "repeats",
   note: "note",
+  counterparty: "who",
+  occurred_at: "when",
+  amount: "amount",
+  description_raw: "description",
+  balance_after: "balance after",
+  bank_account_id: "account",
   status: "status",
   customer_id: "customer",
   invoice_id: "bill",
@@ -89,6 +107,16 @@ const FIELD: Record<string, string> = {
   frequency: "how often",
   day_of_month: "day of the month",
   source_pattern: "bank description",
+  week_start: "week from",
+  require_two_factor: "2-step sign-in required",
+  their_came_in: "your came in",
+  their_went_out: "your went out",
+  their_cash: "your cash in bank",
+  their_still_owed: "your still owed",
+  app_came_in: "app came in",
+  app_went_out: "app went out",
+  app_cash: "app cash in bank",
+  app_still_owed: "app still owed",
 };
 
 // Bookkeeping: who and when are on the line above, ids mean nothing to a person.
@@ -101,9 +129,15 @@ const HIDDEN = new Set([
   "rule_id",
   "last_synced_at",
   "created_from_entry_id",
+  "recorded_by",
+  "recorded_at",
+  "external_id",
+  "entered_by",
 ]);
 
 const MONEY = new Set([
+  "amount",
+  "balance_after",
   "price",
   "base_amount",
   "unique_amount",
@@ -111,6 +145,14 @@ const MONEY = new Set([
   "amount_due",
   "amount_applied",
   "expected_amount",
+  "their_came_in",
+  "their_went_out",
+  "their_cash",
+  "their_still_owed",
+  "app_came_in",
+  "app_went_out",
+  "app_cash",
+  "app_still_owed",
 ]);
 const REFERENCE = new Set([
   "category_id",
@@ -118,8 +160,16 @@ const REFERENCE = new Set([
   "invoice_id",
   "subscription_id",
   "bank_transaction_id",
+  "bank_account_id",
 ]);
-const DATE = new Set(["start_date", "end_date", "next_invoice_date", "issued_on", "due_on"]);
+const DATE = new Set([
+  "start_date",
+  "end_date",
+  "next_invoice_date",
+  "issued_on",
+  "due_on",
+  "week_start",
+]);
 // Only these hold fixed codes; a customer called "open" must stay "open".
 const CODED = new Set([
   "status",

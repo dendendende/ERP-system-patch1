@@ -11,11 +11,13 @@ describe("categories", () => {
         "select name, type from categories where is_system order by type, name",
       );
       expect(rows.map((r) => `${r.type}:${r.name}`)).toEqual([
+        "in:Cancelled (entered by mistake)",
         "in:Other income",
         "in:Partial payment",
         "in:Subscription income",
         "in:Transfer between own accounts",
         "out:Bank fees",
+        "out:Cancelled (entered by mistake)",
         "out:Equipment",
         "out:Internet",
         "out:Marketing",

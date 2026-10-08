@@ -28,7 +28,10 @@ export async function signIn(_prev: LoginState, form: FormData): Promise<LoginSt
     return { error: "That email and password don't match. Try again." };
   }
 
-  // 2FA is required: enter the code if a factor exists, otherwise set one up.
+  // While 2-step sign-in is required: enter the code if a factor exists, otherwise set one up.
+  // (The owner can switch it off in Settings → Team; then the password is enough.)
+  const { data: required } = await supabase.rpc("two_factor_required");
+  if (required === false) redirect("/");
   const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   redirect(aal?.nextLevel === "aal2" ? "/login/verify" : "/login/enroll");
 }

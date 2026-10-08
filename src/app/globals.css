@@ -1,19 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ground: #f4f1ea;
+  /* Corporate v2: cool white page, white cards, dark-grey text, one blue for "do this". */
+  --color-ground: #f3f5f9;
   --color-surface: #ffffff;
-  --color-ink: #1c1b18;
-  --color-muted: #5e5a52;
-  --color-line: #e2ddd2;
-  --color-in: #1e6b4f;
+  --color-ink: #1d2533;
+  --color-muted: #586374;
+  --color-line: #dfe4ec;
+  --color-brand: #1f4fd8;
+  --color-brand-deep: #10265f;
+  --color-brand-soft: #e9effd;
+  --color-nav: #0f1729;
+  --color-nav-ink: #c5cede;
+  --color-in: #0f7a50;
   --color-attention: #b7791f;
   --color-attention-ink: #5c3d00;
-  --color-attention-bg: #f6e7c4;
-  --color-problem: #a8431f;
+  --color-attention-bg: #fbedcd;
+  --color-problem: #b4321f;
 
-  --font-sans: var(--font-schibsted), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+
+  /* Density (v2): list rows 40px, table text 13px. h-row, text-table */
+  --spacing-row: 2.5rem;
+  --text-table: 0.8125rem;
+  --text-table--line-height: 1.25rem;
 
   --default-transition-duration: 200ms;
   --default-transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
@@ -24,11 +35,48 @@ body {
   color: var(--color-ink);
 }
 
+/* Headings: the same corporate face, heavier and a little tighter. */
+.font-display {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* A page's sections settle in one after another: short, eased, no bounce. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.rise > * > * {
+  /* backwards, not both: once done, nothing stays layered (a popup must cover what follows) */
+  animation: rise 240ms cubic-bezier(0, 0, 0.2, 1) backwards;
+}
+.rise > * > :nth-child(2) {
+  animation-delay: 40ms;
+}
+.rise > * > :nth-child(3) {
+  animation-delay: 80ms;
+}
+.rise > * > :nth-child(4) {
+  animation-delay: 120ms;
+}
+.rise > * > :nth-child(n + 5) {
+  animation-delay: 160ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
   }
+}
+
+/* One clear focus ring for everything you can reach with the keyboard. */
+:where(a, button, summary, select, input, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
 }

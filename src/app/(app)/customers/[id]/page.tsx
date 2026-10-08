@@ -68,6 +68,8 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
         )
         .eq("customer_id", id)
         .order("due_on", { ascending: false })
+        // same due date: newest first, so a bill just written is always among the 20 shown
+        .order("created_at", { ascending: false })
         .limit(20),
       supabase
         .from("subscriptions")

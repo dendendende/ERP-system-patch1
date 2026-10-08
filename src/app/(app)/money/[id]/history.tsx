@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui";
+import { formatRupiah } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 
 const when = new Intl.DateTimeFormat("en-GB", {
@@ -10,6 +11,7 @@ const when = new Intl.DateTimeFormat("en-GB", {
 const FIELD_LABEL: Record<string, string> = {
   category_id: "Category",
   note: "Note",
+  counterparty: "Who",
   is_recurring: "Repeats",
   status: "Status",
   customer_id: "Customer",
@@ -25,14 +27,22 @@ const STATUS_WORDS: Record<string, string> = {
   labelled: "labelled by someone",
 };
 
-/** Every change to this transaction's label, newest first, from the audit log. */
-export async function History({ entryId }: { entryId: string }) {
+/** Every change to this transaction's details, newest first, from the audit log — and, for money
+ * entered by hand, who typed it in. */
+export async function History({
+  entryId,
+  transactionId,
+}: {
+  entryId: string;
+  transactionId: string;
+}) {
   const supabase = await createClient();
   const { data: rows } = await supabase
     .from("audit_log")
     .select("id, actor_id, action, old_value, new_value, reason, created_at")
-    .eq("table_name", "entries")
-    .eq("record_id", entryId)
+    .or(
+      `and(table_name.eq.entries,record_id.eq.${entryId}),and(table_name.eq.bank_transactions,record_id.eq.${transactionId})`,
+    )
     .order("id", { ascending: false })
     .limit(50);
 
@@ -80,9 +90,12 @@ export async function History({ entryId }: { entryId: string }) {
       <h2 className="font-display text-xl">Change history</h2>
       <ol className="flex flex-col gap-4">
         {rows.map((row) => {
-          const changed = Object.keys((row.new_value as Record<string, unknown>) ?? {}).filter(
-            (field) => !HIDDEN_FIELDS.has(field),
-          );
+          const typed = row.action === "insert" ? (row.new_value as Record<string, unknown>) : null;
+          const changed = typed
+            ? []
+            : Object.keys((row.new_value as Record<string, unknown>) ?? {}).filter(
+                (field) => !HIDDEN_FIELDS.has(field),
+              );
           return (
             <li
               key={row.id}
@@ -96,6 +109,14 @@ export async function History({ entryId }: { entryId: string }) {
                 </span>{" "}
                 <span className="text-muted">· {when.format(new Date(row.created_at))}</span>
               </p>
+              {typed ? (
+                <p className="text-sm text-muted">
+                  Entered by hand: money {typed.direction === "in" ? "in" : "out"},{" "}
+                  <span className="text-ink tabular-nums">
+                    {formatRupiah(BigInt(String(typed.amount)))}
+                  </span>
+                </p>
+              ) : null}
               <ul className="text-sm text-muted">
                 {changed.map((field) => (
                   <li key={field}>

@@ -4,6 +4,7 @@ import { Card } from "@/components/ui";
 export const metadata = { title: "Settings · Cashflow" };
 
 const SECTIONS = [
+  ["Getting started", "/setup", "The seven setup steps, and which are done. Owner only."],
   ["Team", "/settings/team", "Who can use the app and what they can do. Owner only."],
   [
     "Bank connections",
@@ -29,6 +30,11 @@ const SECTIONS = [
     "Weekly summary",
     "/settings/weekly-summary",
     "Last week in one message, ready to copy or hand to Cowork. Owner only.",
+  ],
+  [
+    "Parallel run",
+    "/settings/parallel-run",
+    "Before go-live: your numbers next to the app's, week by week. Owner only.",
   ],
   [
     "Change history",

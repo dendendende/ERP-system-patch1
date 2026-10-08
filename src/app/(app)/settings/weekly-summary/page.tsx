@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Card } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import { type WeeklySummaryData, lastWeek, weeklySummaryText } from "@/lib/weekly-summary";
+import { worstStatus } from "@/lib/health-status";
+import { lastWeek, weeklySummaryText } from "@/lib/weekly-summary";
 import { CopyText } from "./copy-text";
 
 export const metadata = { title: "Weekly summary · Settings · Cashflow" };
 
-const RANK = { healthy: 0, warning: 1, danger: 2 } as const;
 
 export default async function WeeklySummaryPage() {
   const supabase = await createClient();
@@ -31,14 +31,12 @@ export default async function WeeklySummaryPage() {
       .order("checked_on", { ascending: false }),
   ]);
 
+  // A summary that gets copied and sent must never be built from a failed read.
+  const failed = [summary, moves, late, health, markedPaid, mismatches].find((r) => r.error);
+  if (failed?.error) throw new Error(`Weekly summary didn't load: ${failed.error.message}`);
+
   const latest = (health.data ?? []).filter((h) => h.taken_on === health.data?.[0]?.taken_on);
-  const worst = latest.reduce<WeeklySummaryData["health"]>(
-    (w, h) => {
-      const s = h.status as keyof typeof RANK;
-      return w === null || RANK[s] > RANK[w] ? s : w;
-    },
-    null,
-  );
+  const worst = worstStatus(latest.map((h) => h.status));
   // one line per account: its most recent mismatch of the week
   const seen = new Set<string>();
   const accountMismatches = (mismatches.data ?? []).flatMap((m) => {

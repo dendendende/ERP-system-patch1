@@ -1,13 +1,15 @@
+import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
+import { formatRupiah } from "@/lib/money";
 
 const cx = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(" ");
 
 const focusRing =
-  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 const buttonVariants: Record<ButtonVariant, string> = {
-  primary: "bg-ink text-surface hover:bg-ink/85",
+  primary: "bg-brand text-surface shadow-sm hover:bg-brand-deep",
   secondary: "bg-surface text-ink border border-line hover:bg-ground",
   ghost: "text-ink hover:bg-line/60",
   danger: "bg-problem text-surface hover:bg-problem/85",
@@ -34,7 +36,13 @@ export function Button({
 
 export function Card({ className, ...props }: ComponentProps<"div">) {
   return (
-    <div className={cx("rounded-xl border border-line bg-surface p-5", className)} {...props} />
+    <div
+      className={cx(
+        "rounded-xl border border-line bg-surface p-5 shadow-[0_1px_2px_rgb(16_38_95/0.04),0_4px_16px_-8px_rgb(16_38_95/0.08)]",
+        className,
+      )}
+      {...props}
+    />
   );
 }
 
@@ -81,7 +89,7 @@ export function Input({
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className={cx(
-          "h-10 rounded-lg border bg-surface px-3 text-sm transition-colors placeholder:text-muted/70",
+          "h-10 rounded-lg border bg-surface px-3 text-sm transition-colors placeholder:text-muted",
           error ? "border-problem" : "border-line hover:border-muted/50",
           focusRing,
           className,
@@ -156,39 +164,145 @@ export function EmptyState({
   );
 }
 
-/** Radio tabs inside a GET form: every view has its own URL and works without JavaScript. */
+/** Filter tabs: each one is a link, so a click applies it at once and every view has its URL. */
 export function FilterTabs<T extends string>({
-  name,
   value,
   options,
   label,
+  href,
 }: {
-  name: string;
   value: T;
   options: readonly (readonly [T, string])[];
   label: string;
+  /** The address of the list with this tab chosen (keeping the other filters). */
+  href: (option: T) => string;
 }) {
   return (
-    <div className="flex flex-wrap gap-1" role="group" aria-label={label}>
+    <nav className="flex flex-wrap gap-1" aria-label={label}>
       {options.map(([option, text]) => (
-        <label
+        <Link
           key={option}
+          href={href(option)}
+          aria-current={value === option ? "page" : undefined}
           className={cx(
-            "cursor-pointer rounded-full border px-3 py-1.5 text-sm transition-colors",
-            "has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-surface",
-            value === option ? "border-ink" : "border-line text-muted hover:border-muted/50",
+            "rounded-full border px-3 py-1.5 text-sm transition-colors",
+            focusRing,
+            value === option
+              ? "border-brand bg-brand text-surface"
+              : "border-line text-muted hover:border-muted/50 hover:text-ink",
           )}
         >
-          <input
-            type="radio"
-            name={name}
-            value={option}
-            defaultChecked={value === option}
-            className="sr-only"
-          />
           {text}
-        </label>
+        </Link>
       ))}
+    </nav>
+  );
+}
+
+/** Grey placeholder in the shape of what is loading. Still under reduced motion. */
+export function Skeleton({ className }: { className?: string }) {
+  return <div aria-hidden className={cx("animate-pulse rounded-md bg-line/60", className)} />;
+}
+
+/** Money amount: digits line up, and direction is told by sign AND colour (never colour alone).
+ * `direction` in → green "+", out → rust "−"; without it the amount's own sign decides. */
+export function Money({
+  amount,
+  direction,
+  className,
+}: {
+  amount: bigint;
+  direction?: "in" | "out";
+  className?: string;
+}) {
+  const abs = amount < 0n ? -amount : amount;
+  const flow = direction ?? (amount < 0n ? "out" : null);
+  const sign = flow === "in" ? "+" : flow === "out" ? "−" : "";
+  return (
+    <span
+      className={cx(
+        "whitespace-nowrap tabular-nums",
+        flow === "in" && "text-in",
+        flow === "out" && "text-problem",
+        className,
+      )}
+    >
+      {sign}
+      {formatRupiah(abs)
+        .split(/([.,])/)
+        .map((part, i) =>
+          part === "." || part === "," ? (
+            // the font's lined-up digit mode also widens separators; keep only digits lined up
+            <span key={i} className="[font-variant-numeric:normal]">
+              {part}
+            </span>
+          ) : (
+            part
+          ),
+        )}
+    </span>
+  );
+}
+
+/** Dense data table (v2): 40px rows, 13px text, sticky header, digits lined up. */
+export function Table({
+  label,
+  className,
+  children,
+}: {
+  /** What the table lists, for screen readers. */
+  label: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cx("overflow-x-auto", className)}>
+      <table className="w-full border-collapse text-table tabular-nums">
+        <caption className="sr-only">{label}</caption>
+        {children}
+      </table>
     </div>
   );
+}
+
+type Align = "left" | "right";
+
+export function Th({
+  align = "left",
+  className,
+  ...props
+}: ComponentProps<"th"> & { align?: Align }) {
+  return (
+    <th
+      scope="col"
+      className={cx(
+        "sticky top-0 h-row border-b border-line bg-surface px-3 font-medium whitespace-nowrap text-muted",
+        align === "right" ? "text-right" : "text-left",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export function Td({
+  align = "left",
+  className,
+  ...props
+}: ComponentProps<"td"> & { align?: Align }) {
+  return (
+    <td
+      className={cx(
+        "h-row border-b border-line px-3",
+        align === "right" ? "text-right" : "text-left",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+/** Table row with the list hover. */
+export function Tr({ className, ...props }: ComponentProps<"tr">) {
+  return <tr className={cx("transition-colors hover:bg-ground/60", className)} {...props} />;
 }

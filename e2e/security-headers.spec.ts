@@ -3,7 +3,7 @@ import { Client } from "pg";
 import { signIn } from "./auth";
 
 const DB_URL =
-  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:44322/postgres";
 
 // P6-T3: runs against the production build, so it also proves the CSP doesn't block the app.
 test("pages carry the security headers, with a fresh script nonce each time", async ({ page }) => {

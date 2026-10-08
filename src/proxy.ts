@@ -76,7 +76,11 @@ async function guard(request: NextRequest) {
   });
 
   const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (aal?.currentLevel !== "aal2") {
+  // 2-step sign-in can be switched off by the owner (Settings → Team); the database reads the
+  // same switch, so data access follows it too.
+  const needsTwoFactor =
+    aal?.currentLevel !== "aal2" && (await supabase.rpc("two_factor_required")).data !== false;
+  if (needsTwoFactor) {
     const step = aal?.nextLevel === "aal2" ? "/login/verify" : "/login/enroll";
     // Someone who just opened an invite link chooses a password before setting up 2FA.
     const allowed =
@@ -103,7 +107,8 @@ async function guard(request: NextRequest) {
     });
   }
 
-  if (path.startsWith("/login")) return redirect("/");
+  // signed in: the sign-in pages are done with, except choosing a password after an invite
+  if (path.startsWith("/login") && path !== SET_PASSWORD) return redirect("/");
 
   if (isRestricted(path)) {
     const { data } = await supabase.from("users").select("role").eq("id", user.id).single();

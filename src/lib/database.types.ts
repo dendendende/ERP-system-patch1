@@ -152,6 +152,7 @@ export type Database = {
           created_at: string
           description_raw: string
           direction: string
+          entered_by: string | null
           external_id: string
           id: string
           occurred_at: string
@@ -163,6 +164,7 @@ export type Database = {
           created_at?: string
           description_raw?: string
           direction: string
+          entered_by?: string | null
           external_id: string
           id?: string
           occurred_at: string
@@ -174,6 +176,7 @@ export type Database = {
           created_at?: string
           description_raw?: string
           direction?: string
+          entered_by?: string | null
           external_id?: string
           id?: string
           occurred_at?: string
@@ -184,6 +187,13 @@ export type Database = {
             columns: ["bank_account_id"]
             isOneToOne: false
             referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_transactions_entered_by_fkey"
+            columns: ["entered_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -252,6 +262,7 @@ export type Database = {
         Row: {
           bank_transaction_id: string
           category_id: string | null
+          counterparty: string
           customer_id: string | null
           id: string
           invoice_id: string | null
@@ -265,6 +276,7 @@ export type Database = {
         Insert: {
           bank_transaction_id: string
           category_id?: string | null
+          counterparty?: string
           customer_id?: string | null
           id?: string
           invoice_id?: string | null
@@ -278,6 +290,7 @@ export type Database = {
         Update: {
           bank_transaction_id?: string
           category_id?: string | null
+          counterparty?: string
           customer_id?: string | null
           id?: string
           invoice_id?: string | null
@@ -530,6 +543,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      parallel_run_weeks: {
+        Row: {
+          app_came_in: number
+          app_cash: number
+          app_still_owed: number
+          app_went_out: number
+          notes: string
+          recorded_at: string
+          recorded_by: string | null
+          their_came_in: number
+          their_cash: number
+          their_still_owed: number
+          their_went_out: number
+          week_start: string
+        }
+        Insert: {
+          app_came_in: number
+          app_cash: number
+          app_still_owed: number
+          app_went_out: number
+          notes?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          their_came_in: number
+          their_cash: number
+          their_still_owed: number
+          their_went_out: number
+          week_start: string
+        }
+        Update: {
+          app_came_in?: number
+          app_cash?: number
+          app_still_owed?: number
+          app_went_out?: number
+          notes?: string
+          recorded_at?: string
+          recorded_by?: string | null
+          their_came_in?: number
+          their_cash?: number
+          their_still_owed?: number
+          their_went_out?: number
+          week_start?: string
+        }
+        Relationships: []
       }
       payments: {
         Row: {
@@ -844,6 +902,77 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      saved_views: {
+        Row: {
+          created_at: string
+          default_for_role: Database["public"]["Enums"]["app_role"] | null
+          id: string
+          list: string
+          name: string
+          query: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_for_role?: Database["public"]["Enums"]["app_role"] | null
+          id?: string
+          list: string
+          name: string
+          query?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          default_for_role?: Database["public"]["Enums"]["app_role"] | null
+          id?: string
+          list?: string
+          name?: string
+          query?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_views_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_settings: {
+        Row: {
+          id: boolean
+          require_two_factor: boolean
+        }
+        Insert: {
+          id?: boolean
+          require_two_factor?: boolean
+        }
+        Update: {
+          id?: boolean
+          require_two_factor?: boolean
+        }
+        Relationships: []
+      }
+      setup_steps: {
+        Row: {
+          done_at: string
+          done_by: string | null
+          step: string
+        }
+        Insert: {
+          done_at?: string
+          done_by?: string | null
+          step: string
+        }
+        Update: {
+          done_at?: string
+          done_by?: string | null
+          step?: string
+        }
+        Relationships: []
       }
       sign_in_devices: {
         Row: {
@@ -1362,6 +1491,52 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      money_list: {
+        Args: {
+          p_account?: string
+          p_category?: string
+          p_direction?: string
+          p_from?: string
+          p_max?: number
+          p_min?: number
+          p_q?: string
+          p_status?: string
+          p_to?: string
+        }
+        Returns: {
+          account: string
+          account_id: string
+          amount: number
+          by_hand: boolean
+          category: string
+          category_id: string
+          counterparty: string
+          day: string
+          description: string
+          direction: string
+          id: string
+          invoice_id: string
+          invoice_number: string
+          is_own_transfer: boolean
+          note: string
+          occurred_at: string
+          status: string
+        }[]
+      }
+      money_list_summary: {
+        Args: {
+          p_account?: string
+          p_category?: string
+          p_direction?: string
+          p_from?: string
+          p_max?: number
+          p_min?: number
+          p_q?: string
+          p_status?: string
+          p_to?: string
+        }
+        Returns: Json
+      }
       money_summary: {
         Args: { p_today?: string }
         Returns: {
@@ -1397,8 +1572,32 @@ export type Database = {
         }[]
       }
       payee_pattern: { Args: { p_description: string }; Returns: string }
+      record_by_hand: {
+        Args: {
+          p_account: string
+          p_amount: number
+          p_category?: string
+          p_counterparty?: string
+          p_day: string
+          p_direction: string
+          p_key: string
+          p_note?: string
+        }
+        Returns: string
+      }
       record_failure: {
         Args: { p_key: string; p_window_seconds: number }
+        Returns: undefined
+      }
+      record_parallel_week: {
+        Args: {
+          p_came_in: number
+          p_cash: number
+          p_notes?: string
+          p_still_owed: number
+          p_week_start: string
+          p_went_out: number
+        }
         Returns: undefined
       }
       record_reminder_result: {
@@ -1470,6 +1669,7 @@ export type Database = {
         Args: { p_bank_transaction_id: string }
         Returns: number
       }
+      two_factor_required: { Args: never; Returns: boolean }
       void_invoice: {
         Args: { p_invoice_id: string; p_reason: string }
         Returns: {

@@ -28,11 +28,17 @@ export default async function RegularCostsPage() {
   const [{ data: costs }, { data: suggestions }, { data: me }] = await Promise.all([
     supabase
       .from("recurring_expenses")
-      .select("id, name, expected_amount::text, frequency, day_of_month, start_date, end_date, is_active")
+      .select(
+        "id, name, expected_amount::text, frequency, day_of_month, start_date, end_date, is_active",
+      )
       .order("is_active", { ascending: false })
       .order("expected_amount", { ascending: false }),
     supabase.rpc("suggest_recurring_expenses"),
-    supabase.from("users").select("role").eq("id", user?.id ?? "").maybeSingle(),
+    supabase
+      .from("users")
+      .select("role")
+      .eq("id", user?.id ?? "")
+      .maybeSingle(),
   ]);
   const isOwner = me?.role === "owner";
 
@@ -44,8 +50,8 @@ export default async function RegularCostsPage() {
         </Link>
         <h1 className="font-display text-3xl md:text-4xl">Regular costs</h1>
         <p className="text-muted">
-          What you pay again and again — rent, salaries, hosting. The cash forecast takes them off on
-          the day they&apos;re usually paid.
+          What you pay again and again — rent, salaries, hosting. The cash forecast takes them off
+          on the day they&apos;re usually paid.
         </p>
       </div>
 
@@ -53,15 +59,17 @@ export default async function RegularCostsPage() {
         <section aria-label="Suggestions" className="flex flex-col gap-3">
           <h2 className="font-display text-xl">These look regular</h2>
           <p className="text-sm text-muted">
-            Found in your bank history. Nothing is added until {isOwner ? "you say so" : "the owner says so"}.
+            Found in your bank history. Nothing is added until{" "}
+            {isOwner ? "you say so" : "the owner says so"}.
           </p>
           {suggestions.map((s) => (
             <Card key={s.pattern} className="flex flex-col gap-3">
               <div>
                 <p className="font-medium">{s.name}</p>
                 <p className="text-sm text-muted">
-                  about <span className="tabular-nums">{formatRupiah(BigInt(s.expected_amount))}</span> around
-                  day {s.day_of_month}, {s.months_seen} months in a row
+                  about{" "}
+                  <span className="tabular-nums">{formatRupiah(BigInt(s.expected_amount))}</span>{" "}
+                  around day {s.day_of_month}, {s.months_seen} months in a row
                 </p>
               </div>
               {isOwner ? (
@@ -92,11 +100,15 @@ export default async function RegularCostsPage() {
                     {HOW_OFTEN[c.frequency]}, around day {c.day_of_month}
                   </p>
                 </div>
-                <StatusPill tone={c.is_active ? "in" : "neutral"}>{c.is_active ? "Paying" : "Stopped"}</StatusPill>
+                <StatusPill tone={c.is_active ? "in" : "neutral"}>
+                  {c.is_active ? "Paying" : "Stopped"}
+                </StatusPill>
               </div>
               {isOwner ? (
                 <details className="text-sm">
-                  <summary className="cursor-pointer text-muted underline underline-offset-4">Change</summary>
+                  <summary className="cursor-pointer text-muted underline underline-offset-4">
+                    Change
+                  </summary>
                   <div className="mt-3">
                     <CostForm cost={c} today={today} idKey={c.id} />
                   </div>

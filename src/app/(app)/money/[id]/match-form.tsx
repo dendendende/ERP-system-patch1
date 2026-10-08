@@ -35,11 +35,7 @@ export function MatchToInvoice({
   }, [state.at, router]);
 
   const best = candidates[0];
-  const suggested = best
-    ? BigInt(best.owed) < BigInt(amount)
-      ? best.owed
-      : amount
-    : amount;
+  const suggested = best ? (BigInt(best.owed) < BigInt(amount) ? best.owed : amount) : amount;
 
   return (
     <Card className="flex flex-col gap-4">

@@ -31,6 +31,7 @@ const REFERS_TO: Record<string, string> = {
   invoice_id: "invoices",
   subscription_id: "subscriptions",
   bank_transaction_id: "bank_transactions",
+  bank_account_id: "bank_accounts",
 };
 
 const inputClass = "h-10 rounded-lg border border-line bg-surface px-3 text-sm";
@@ -135,7 +136,9 @@ export default async function AuditLogPage({ searchParams }: PageProps<"/setting
         ? `/customers/${id}`
         : tableName === "entries" && entryTransaction.has(id)
           ? `/money/${entryTransaction.get(id)}`
-          : null;
+          : tableName === "bank_transactions"
+            ? `/money/${id}`
+            : null;
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">

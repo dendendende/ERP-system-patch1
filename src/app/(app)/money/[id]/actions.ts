@@ -1,22 +1,49 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { parseRupiahInput } from "@/lib/money";
+import { CANCELLED_CATEGORY, parseRupiahInput } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 
-/** Change the category and note of one transaction. RLS decides who may. */
+/** Change the category and details of one transaction. RLS decides who may. */
 export async function updateEntry(form: FormData) {
   const entryId = String(form.get("entryId") ?? "");
   const transactionId = String(form.get("transactionId") ?? "");
   const categoryId = String(form.get("categoryId") ?? "");
-  const note = String(form.get("note") ?? "").slice(0, 500);
+  const note = String(form.get("note") ?? "")
+    .trim()
+    .slice(0, 500);
+  const counterparty = String(form.get("counterparty") ?? "")
+    .trim()
+    .slice(0, 200);
   if (!entryId) return;
 
   const supabase = await createClient();
   await supabase
     .from("entries")
-    .update({ category_id: categoryId || null, note })
+    .update({ category_id: categoryId || null, note, counterparty })
     .eq("id", entryId);
+
+  revalidatePath(`/money/${transactionId}`);
+  revalidatePath("/money");
+}
+
+/** A hand entry typed by mistake: filed as cancelled, so no total counts it. It stays on record
+ * (and in the history), and choosing another category brings it back. The database refuses this
+ * for money the bank sent, and for money that paid a bill. */
+export async function cancelHandEntry(form: FormData) {
+  const entryId = String(form.get("entryId") ?? "");
+  const transactionId = String(form.get("transactionId") ?? "");
+  const direction = form.get("direction") === "in" ? "in" : "out";
+  const supabase = await createClient();
+  const { data: category } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("is_system", true)
+    .eq("type", direction)
+    .eq("name", CANCELLED_CATEGORY)
+    .maybeSingle();
+  if (!entryId || !category) return;
+  await supabase.from("entries").update({ category_id: category.id }).eq("id", entryId);
 
   revalidatePath(`/money/${transactionId}`);
   revalidatePath("/money");

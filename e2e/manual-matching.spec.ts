@@ -44,14 +44,21 @@ test("an operator says which bill a transfer paid, but can't mark one paid", asy
   await page.getByLabel("Statement file (CSV)").setInputFiles({
     name: `${ref}.csv`,
     mimeType: "text/csv",
-    buffer: Buffer.from(`date,description,amount\n2026-09-20,"TRSF CR ${ref} ${CUSTOMER.toUpperCase()}",50000\n`),
+    buffer: Buffer.from(
+      `date,description,amount\n2026-09-20,"TRSF CR ${ref} ${CUSTOMER.toUpperCase()}",50000\n`,
+    ),
   });
   await page.getByRole("button", { name: "Check file" }).click();
   await page.getByRole("button", { name: /^Import \d+ new$/ }).click();
   await expect(page.getByText(/Added \d+ new transactions/)).toBeVisible();
 
   await page.goto(`/money?q=${ref}`);
-  await page.getByRole("region", { name: "Transactions" }).getByRole("link").first().click();
+  await page
+    .getByRole("region", { name: "Transactions" })
+    .locator("tbody")
+    .getByRole("link")
+    .first()
+    .click();
   await expect(page.getByRole("heading", { name: "Which bill did this pay?" })).toBeVisible();
 
   await page.getByRole("group", { name: "Bills waiting for money" }).getByText(number).click();

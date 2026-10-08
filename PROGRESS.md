@@ -1,8 +1,8 @@
 # PROGRESS
 
-**Current phase:** 6
+**Current phase:** 7 (Phase 6 waits on human sign-offs)
 **Current branch:** main (phase file asks for `phase-6-launch` — branching is the human's call)
-**Last updated:** 2026-10-04
+**Last updated:** 2026-10-08
 
 ## How to use
 - Tick a task only after its tests pass and it is committed.
@@ -32,6 +32,12 @@
 - 2026-10-02 · Database test files now run one at a time (vitest fileParallelism: false). Several tests switch off every bank account or bill inside their transaction; in parallel those row locks occasionally deadlocked. ~13s for the full suite.
 - 2026-10-03 · Team invites are links the owner sends by hand (like reminders): the app makes a one-time Supabase invite link, nothing is emailed. Opening it shows a Continue button — the code is used only on that click, so chat apps previewing the link can't burn it. Switched off = is_active false (RLS: no role, no data, next query) + Supabase ban (proxy's getUser fails → signed out on the next page). Users can never be deleted (trigger, even via auth.users); the last active owner can't be demoted or switched off (locked check). Resolves the P0-T5 open question.
 - 2026-10-04 · Every page is rendered per request (root layout awaits connection()): the CSP nonce only reaches pages rendered at request time. Signed-out visitors (anon) have no grants in public at all; views are read-only. Customer contact columns are not granted to the team — read them through customer_contacts() (owner/operator); a new customers column must be added to the column grant (test fails otherwise). Login rate limits count failures only, in the database.
+- 2026-10-05 · Local Supabase ports moved 543xx → 443xx (API 44321, DB 44322, Studio 44323, Mailpit 44324): Windows/Hyper-V reserves ranges inside 49152–65535 (here 54163–54662) and restarting WinNAT didn't release them; below 49152 they can't be taken. Each developer updates .env.local (NEXT_PUBLIC_SUPABASE_URL, SUPABASE_DB_URL) to the new ports.
+- 2026-10-08 · 2-step sign-in has an owner switch (owner decision: working alone for now). security_settings.require_two_factor, read by current_app_role() (RLS) and by the proxy/sign-in via two_factor_required(); ON in a new database, owner flips it on Settings → Team (audited). Switched OFF in the local dev database. DB tests force it ON per transaction and e2e force it ON for the run (global-setup restores the local value), so the tests keep checking the secure mode. Must be ON before go-live (launch.md sign-off).
+- 2026-10-08 · Fixed: the daily invoicing job crashed — and billed nobody — when a subscription's renewal day had already passed (bill due before it was written is refused by the database). A late bill is now due the day it is written.
+- 2026-10-08 · Corporate look (owner request): IBM Plex Sans for everything (was Newsreader + Schibsted Grotesk); cool white page, white cards, dark-grey text, one blue (brand) for actions/active filters, deep navy sidebar with line icons and a logo mark; Home opens on a dark-blue banner. Tokens in globals.css, AA contrast tested for every new pair. Sections rise in (240ms, reduced-motion respected), fill-mode backwards so nothing stays layered over popups.
+- 2026-10-08 · DataTable virtualization is ~20 lines of our own (rows are one fixed height, so the visible window is arithmetic — src/lib/virtual-rows.ts), not @tanstack/react-virtual: no new dependency. The page scrolls (not a box inside it), so the header sticks to the window; on phones the table box scrolls sideways instead.
+- 2026-10-08 · Money by hand (owner request): stored in bank_transactions like bank money (so every list, total, health check, forecast and bill match sees it), marked by entered_by + external_id 'hand:<form key>' (one form = one row, even on a double click), audited on insert, never changed. A mistake is cancelled by filing it under the built-in "Cancelled (entered by mistake)" category — in the 'transfer' report group, which every total already leaves out; only hand entries that paid no bill can be cancelled, and no rule may use it (triggers). Statement import warns when a row looks like a hand entry (same account/direction/amount, ±1 day); the person cancels the hand one. Details (who + note) live on entries: editable, audited, searchable.
 
 ## Phase 0 — Setup
 - [x] P0-T1 Initialize project
@@ -106,14 +112,55 @@
 ## Phase 6 — Security & launch
 - [x] P6-T1 Audit log screen
 - [x] P6-T2 Team and roles screen
-- [ ] P6-T3 Security hardening [REVIEW] — ⏸ awaiting review (T3a–T3c built; see docs/security.md)
+- [ ] P6-T3 Security hardening [REVIEW] — code approved by human 2026-10-05; still open: production items + owner decisions in docs/security.md (Sign-off)
   - [x] P6-T3a Headers, RLS-coverage test, service-role guard, CI secret scan + dependency audit
   - [x] P6-T3b Rate limiting and new-device sign-in alerts
   - [x] P6-T3c Personal data by role, security notes (backups, restore drill, UU PDP)
-- [ ] P6-T4 First-time setup guide
-- [ ] P6-T5 Polish and accessibility
-- [ ] P6-T6 Production launch [REVIEW]
+- [ ] P6-T4 First-time setup guide — built and tested; waiting on the human test (a non-tech person completes it without help, < 30 min)
+- [x] P6-T5 Polish and accessibility
+- [ ] P6-T6 Production launch [REVIEW] — ⏸ awaiting review; code side done, the launch itself is the human's (docs/launch.md)
 - [ ] Phase 6 acceptance passed → go live
+
+## Phase 7 — Design system v2 and floorplans (UPGRADE-v2-erp-ux.md §6)
+- [x] P7-T1 Density tokens + table primitives
+- [x] P7-T2 FilterBar: typed filters, chips, URL-synced state, save/load views (filter-bar.tsx + saved-views.tsx)
+- [x] P7-T3 saved_views table + API [REVIEW] — approved by human 2026-10-08
+- [x] P7-T4 DataTable: virtualized, sortable, column chooser, multi-select, bulk bar, totals, CSV export (50k rows at 60fps)
+- [x] P7-T5 Cue tile
+- [ ] P7-T6 AnalyticalListPage shell
+- [ ] P7-T7 ObjectPage shell
+- [ ] P7-T8 Chart wrappers (bar, line, stacked, aging, donut; click emits a filter)
+- [ ] P7-T9 Command palette + global search
+- [ ] P7-T10 Keyboard navigation and focus across list and panel
+
+## Phase 8 — Metrics engine and role-based Home
+- [ ] P8-T1 metrics module [REVIEW]
+- [ ] P8-T2 Aging buckets + DSO + CEI + bucket migration [REVIEW]
+- [ ] P8-T3 MRR/ARR, renewal rate, revenue by plan/customer, concentration [REVIEW]
+- [ ] P8-T4 Spending analytics + anomaly flag
+- [ ] P8-T5 Nightly metric_snapshots
+- [ ] P8-T6 Home as Role Center
+- [ ] P8-T7 Money in & out as analytical list page — done early at the owner's request (filters, chips, totals, 2 charts with drill-down, dense sortable table, CSV); since added: saved views (P7-T3), virtualized table (P7-T4); still to come with their tasks: side panel (P7-T6), bulk actions (P9-T4)
+- [ ] P8-T8 Customers and Invoices as analytical lists; Customer and Invoice object pages
+- [ ] P8-T9 Business health v2
+
+## Phase 9 — Reports and actions
+- [ ] P9-T1 Report framework
+- [ ] P9-T2 The 8 reports [REVIEW]
+- [ ] P9-T3 Customer statement + send
+- [ ] P9-T4 Bulk actions wired [REVIEW]
+- [ ] P9-T5 Notifications centre + badge
+- [ ] P9-T6 Period comparison toggle
+- [ ] P9-T7 Performance pass
+- [ ] P9-T8 Accessibility pass
+
+## v2 acceptance
+- [ ] Every number on Home opens the list that produced it
+- [ ] Lists have filters, saved views, bulk actions, and export
+- [ ] Aging, DSO, CEI, MRR tested against a hand-calculated fixed dataset
+- [ ] Home loads under 1.5s with 50k transactions
+- [ ] A non-finance person can still read Home's top layer without jargon
+- [ ] No screen is only text: each has numbers, status, or a chart carrying the meaning
 
 ## Session notes
 <!-- Newest first. One line per task: date · task id · what happened · next step -->
@@ -187,3 +234,18 @@
 - 2026-10-04 · P6-T3a · CSP with per-page nonce + HSTS/frame/nosniff headers (e2e on the production build, no CSP violations); rls-coverage test (tables without RLS, definer views, anything anon can read/run, writable views) — it found anon grants on 7 views and 21 functions, removed; secrets test (admin client server-only, no NEXT_PUBLIC_ secrets); CI: pnpm audit --prod + gitleaks over full history; audit found a critical Next.js advisory → 16.3.5 → 16.3.6 · next: T3b
 - 2026-10-04 · P6-T3b · login: 20 failed per IP / 10 per email per 15 min (database counters, failures only); invite links 10 failed per IP; new-device sign-ins recorded by the proxy (insert-only) and shown to the owner on Home; 2FA codes rate-limited by Supabase per browser IP · next: T3c
 - 2026-10-04 · P6-T3c · customer phone/email for owner + operator only (column rights + customer_contacts(); team lists and customer page/PDF use it); change history except labels/subscriptions owner-only; docs/security.md: checklist with how each item is tested, local restore drill (counts, money total, RLS/policies/triggers identical), UU PDP retention table with 3 owner decisions; 336 unit/DB + 54 e2e pass · ⏸ STOPPED for human review of P6-T3
+- 2026-10-05 · P6-T3 · code approved by human · next: P6-T4
+- 2026-10-05 · P6-T4 · /setup (owner): 7 steps, most tick themselves off from the data (bank account, transactions, labels, active subscription, regular cost, 2+ team members), each can be marked done/skipped (setup_steps, saved → resumes at the first open step); "Getting started" card on owner Home until done; added the missing "Add a customer" form (owner/operator; WhatsApp typed the local way → +62…); 345 unit/DB + 57 e2e pass · waiting on the non-tech tester (human), then P6-T5
+- 2026-10-05 · P6-T5 · e2e critical flow (sign in → label → bill → payment matched by import → bill paid, its reminder "Not sent · The bill was paid", thank-you due; every pending reminder cancelled in the records); contrast test over the design tokens (WCAG AA, incl. see-through backgrounds) — fixed 2 failures (balance-banner detail, input placeholders); one focus ring for every control, Skip to content link; loading / error ("This page didn't load… nothing you saved was lost") / not-found screens; Home, Health and Weekly summary now refuse to show numbers from a failed read (they showed Rp 0 / "No data yet"); sweep over all 17 screens on desktop + phone: one h1, labelled fields, no console errors, no sideways scroll; reduced motion was already global. No canvas file to compare screens against (same as P4); 364 unit/DB + 60 e2e pass (twice) · next: P6-T6 [REVIEW] — mostly the human's (production keys, real bank)
+- 2026-10-05 · P6-T6 · Settings → Parallel run (owner): each Monday the owner writes their 4 numbers (came in / went out last week, cash + still owed now); record_parallel_week() stores the app's own numbers at that moment (nobody can type them), audited; differences to the rupiah; "ready for go-live" after 2 back-to-back matching weeks (unit + DB + e2e tests); /dev/components hidden in production; docs/launch.md: production Supabase + Vercel step by step (first owner by hand, env table, no seed, no mocks), view-only bank user + CSV import until P1-T4, sending stays manual, 15-min smoke test, parallel run, go-live sign-off, rollback; 369 unit/DB + 62 e2e pass · ⏸ STOPPED for human review
+- 2026-10-08 · 2FA switch (owner request, see Decisions) + fixed invoicing job crash on past renewal days · UPGRADE-v2-erp-ux.md read; Phases 7–9 added below Phase 6
+- 2026-10-08 · P7-T1 · density tokens (h-row 40px, text-table 13px); Table/Th/Td/Tr (sticky header, right-aligned amounts), Money (sign + colour: in green +, out rust −; digits lined up, separators kept narrow — the body font widens them in tabular mode), Skeleton (used by the loading screen); one health status → colour/order map (lib/health-status.ts) replacing 3 copies, statuses always from the DB thresholds; /dev/components shows all; 374 unit/DB + 63 e2e pass · next: P7-T2
+- 2026-10-08 · Money in & out v2 (owner asked for it first): money_list() / money_list_summary() — one SQL definition of the filters that the list, totals, charts and CSV all read (Jakarta days, own transfers listed but out of totals, reader's RLS); filter bar with removable chips (old ?show= links still work); totals that drill down; in/out-by-month and biggest-categories charts (plain CSS, every bar a link that filters); dense table with date/amount sorting, account column on wide screens, description truncates so amounts stay visible; CSV export (formula-injection guard, UTF-8 BOM, same sort). Also: e2e removes its test sign-in records afterwards (432 cleared locally). 385 unit/DB + 64 e2e pass · next: P7-T3 saved views [REVIEW] (finishes P7-T2)
+- 2026-10-08 · P7-T3 + P7-T2 · saved_views (own views private; the owner sets one starting view per list and role; only plain filter characters stored — checked by the app, which rebuilds the query from the checked filters, and by a DB check; no audit: not money data); Views row under the filter bar (Everything, one click per view, × to remove, + Save this view; owner can make it the starting view for a role); bare /money opens your role's starting view, "Everything"/Clear all is ?all=1 so it never bounces back; 4 RLS tests + e2e; money e2e now waits for streamed rows; 390 unit/DB + 65 e2e pass · ⏸ STOPPED for human review of P7-T3
+- 2026-10-08 · P7-T3 approved by human
+- 2026-10-08 · P7-T4 · <DataTable> (src/components/data-table.tsx): only on-screen rows in the page (+10 each side), sticky header, sorting (server links, or in the browser for lists held whole), Columns chooser (remembered per browser), tick boxes + action bar when a list has bulk actions (wired in P9-T4), totals row, CSV (server file, or what is shown); Money in & out uses it — 500 per page (was 50), totals row = difference of everything matching, Category hidden on phones so the amount always fits; /dev/data-table: 50,000 rows — e2e benchmark scrolls top to bottom jumping ~11,000px a frame: median 16.7ms (60fps), p95 18.2ms; plus sort, tick all, column off survives reload, CSV = 50,000 rows; 394 unit/DB + 69 e2e pass · next: P7-T5
+- 2026-10-08 · Owner requests before P7-T5: Customers / Renewals filter tabs did nothing until "Show" was pressed — tabs are now links that apply at once and keep the search (FilterTabs); Business health made visual — score ring (how many checks healthy), a gauge per check coloured by the owner's limits with a pin at today's value (lib/health-gauge.ts, tested), trend line once there are 2+ days, worst first and "no data yet" last; corporate restyle (see Decisions). Fixed on the way: a bill just written could be missing from the customer page (20 shown, ties on due date in random order) — newest first now
+- 2026-10-08 · P7-T5 · <Cue> (src/components/cue.tsx): label, number (wide = exact rupiah, normal = short or a count + unit), trend vs previous period (lib/trend.ts: bigint-exact %, green/rust by whether up is good, tested), status bar from the owner's limits, whole tile opens its filtered list (one spoken sentence for screen readers), sparkline on wide tiles, CueSkeleton for loading on its own; Home's "This month" is now 5 cues (came in / went out with 6-month lines, still owed coloured by the late-payment limit, need a label, paying late — the two counts load independently); /dev/components shows all variants; 410 unit/DB + 70 e2e pass · next: P7-T6
+- 2026-10-08 · Owner request: importing a bank statement made hard to miss on Money in & out — blue "Import a bank statement" button at the top (owner/operator only; viewers don't see it), and an amber banner when a statement-fed account has had no import for 7 days (or never), saying what may be missing, with the button in it. Also: Home's "Reminders to send" says "Showing the 30 oldest of N" instead of cutting off silently; e2e runs now tidy up before and after (test users' open bills cancelled, found through the audit log; the E2E Flow thank-you closed) — leftovers had pushed tests' own bills off 20/8/30-item lists, which made 3 tests flaky; locally cleared 21 test reminders and the test users' open bills. 410 unit/DB + 71 e2e pass (twice) · next: P7-T6
+- 2026-10-08 · Owner request: record money in/out by hand (/money/new; shortcut buttons on Home's banner and Money in & out's header; owner/operator only), with who + what-for details. Details editable on every transaction, right after an import ("Add details" for the imported rows), shown in the list (one line, "By hand" tag), searched, in the CSV and in the change history. Hand entries can be cancelled; the import check warns about likely doubles. The statement file box is now a dashed drop area with a blue choose-file button. Fixed along the way: own-transfer detection now names its category (there are two in the transfer group now). e2e tidy removes the test users' hand entries; the daily balance check ignores hand entries (they aren't the bank's). 415 unit/DB + 72 e2e pass · next: P7-T6
+- 2026-10-08 · Owner request: one "Add money in or out" button on Money in & out opens one page with two tabs — "Type it in" (/money/new) and "Import a bank statement" (/money/import); the 7-day import banner keeps its own import button. Home's add-money buttons are big: green "Money in", red "Money out" (contrast tested). 416 unit/DB + affected e2e pass · next: P7-T6
