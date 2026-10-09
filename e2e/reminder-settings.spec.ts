@@ -10,7 +10,9 @@ test("the owner moves a reminder step, sees the message preview, and puts it bac
   await page.getByRole("link", { name: /Reminders/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Reminders" })).toBeVisible();
 
-  const step = page.locator(".rounded-xl").filter({ has: page.getByRole("heading", { name: "7 days before it's due" }) });
+  const step = page
+    .locator(".rounded-xl")
+    .filter({ has: page.getByRole("heading", { name: "7 days before it's due" }) });
   await expect(step).toBeVisible();
 
   // the preview shows the message in both languages, with the fixed account and warning
@@ -30,7 +32,9 @@ test("the owner moves a reminder step, sees the message preview, and puts it bac
   await expect(page.getByRole("heading", { name: "5 days before it's due" })).toBeVisible();
 
   // …and back, so later runs start from the default schedule
-  const moved = page.locator(".rounded-xl").filter({ has: page.getByRole("heading", { name: "5 days before it's due" }) });
+  const moved = page
+    .locator(".rounded-xl")
+    .filter({ has: page.getByRole("heading", { name: "5 days before it's due" }) });
   await moved.getByLabel("Days").fill("7");
   await moved.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("heading", { name: "7 days before it's due" })).toBeVisible();

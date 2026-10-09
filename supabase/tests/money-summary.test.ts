@@ -58,7 +58,7 @@ describe("money_summary on a fixed dataset (hand-calculated)", () => {
       await tx(db, a, "2031-05-03", "out", 1 * M);
       await tx(db, a, "2031-05-05", "out", 2 * M, { balance: 50 * M }); // moved to our own account B…
       await tx(db, b, "2031-05-05", "in", 2 * M, { balance: 20 * M }); // …so neither side counts
-      await tx(db, a, "2031-05-20", "in", 7 * M); // after "today"
+      await tx(db, a, "2031-05-20", "in", 7 * M, { balance: 57 * M }); // after "today": not even its balance
 
       // bills: one past due and partly paid, one not yet due
       await db.query("set local role service_role");

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { type CsvCell, toCsv } from "@/lib/csv";
+import { typingIn } from "@/lib/keys";
 import { visibleRange } from "@/lib/virtual-rows";
 import { Button } from "./ui";
 
@@ -41,6 +42,7 @@ export function DataTable<Row>({
   csvHref,
   bulkActions,
   toolbar,
+  activeKey,
 }: {
   /** Remembers which columns this person switched off. */
   id: string;
@@ -58,6 +60,8 @@ export function DataTable<Row>({
   bulkActions?: (selected: Row[], clear: () => void) => ReactNode;
   /** Left of the table's controls, e.g. "1,204 transactions". */
   toolbar?: ReactNode;
+  /** The row open in the side panel: marked, so the eye finds its place in the list. */
+  activeKey?: string;
 }) {
   const [localSort, setLocalSort] = useState<
     (Sort & { compare: (a: Row, b: Row) => number }) | null
@@ -120,6 +124,77 @@ export function DataTable<Row>({
   const start = Math.min(view.start, count);
   const end = Math.min(view.end, count);
 
+  // Keyboard (P7-T10): j / k move to the next / previous row (Enter then opens its link); with a
+  // row open in the side panel they open the next / previous one there. Closing the panel puts
+  // focus back on the row it came from. A row may not be drawn yet (only the rows on screen are),
+  // so the page scrolls to it first and it's focused once it's there.
+  const pending = useRef<{ index: number; open: boolean } | null>(null);
+  const indexOf = (key: string) => shown.findIndex((r) => rowKey(r) === key);
+
+  const focusPending = useEffectEvent(() => {
+    const want = pending.current;
+    const row =
+      want && body.current?.querySelector<HTMLElement>(`tr[aria-rowindex="${want.index + 2}"]`);
+    if (!want || !row) return;
+    pending.current = null;
+    const link = row.querySelector<HTMLElement>("a[href]");
+    (link ?? row).focus({ preventScroll: true });
+    // now that it's drawn, settle it in view (its scroll margins keep it off the sticky header)
+    row.scrollIntoView({ block: "nearest", behavior: "instant" });
+    if (want.open) link?.click();
+  });
+  const goTo = useEffectEvent((index: number, open: boolean) => {
+    const el = body.current;
+    if (!el) return;
+    pending.current = { index, open };
+    const h = view.h;
+    const top = el.getBoundingClientRect().top + index * h;
+    const header = el.parentElement?.querySelector("thead")?.offsetHeight ?? h;
+    // keep the row clear of the sticky header and of the phone's tab bar
+    if (top < header) window.scrollBy(0, top - header - h);
+    else if (top + h > window.innerHeight - 64)
+      window.scrollBy(0, top + h * 2 - window.innerHeight + 64);
+    focusPending();
+  });
+  // after each draw: the row asked for may be on screen now
+  useEffect(() => focusPending());
+
+  const onShortcut = useEffectEvent((e: KeyboardEvent) => {
+    if ((e.key !== "j" && e.key !== "k") || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.defaultPrevented || typingIn(e.target) || document.querySelector("dialog[open]")) return;
+    if (!count) return;
+    const focused = (document.activeElement as HTMLElement | null)?.closest("tr[data-row]");
+    // a row asked for but not drawn yet counts as where we are: held-down keys don't get lost
+    const from = pending.current
+      ? pending.current.index
+      : activeKey
+        ? indexOf(activeKey)
+        : focused && body.current?.contains(focused)
+          ? Number(focused.getAttribute("aria-rowindex")) - 2
+          : -1;
+    const to = from === -1 ? 0 : Math.min(count - 1, Math.max(0, from + (e.key === "j" ? 1 : -1)));
+    if (to === from) return;
+    e.preventDefault();
+    goTo(to, Boolean(activeKey));
+  });
+  useEffect(() => {
+    window.addEventListener("keydown", onShortcut);
+    return () => window.removeEventListener("keydown", onShortcut);
+  }, []);
+
+  // the panel closed and focus fell to the page: back to the row that was open
+  const restore = useEffectEvent((was: string) => {
+    if (document.activeElement && document.activeElement !== document.body) return;
+    const index = indexOf(was);
+    if (index !== -1) goTo(index, false);
+  });
+  const wasActive = useRef(activeKey);
+  useEffect(() => {
+    const was = wasActive.current;
+    wasActive.current = activeKey;
+    if (was && !activeKey) restore(was);
+  }, [activeKey]);
+
   const nextSort = (key: string): Sort => ({
     key,
     dir: sort?.key === key && sort.dir === "desc" ? "asc" : "desc",
@@ -160,6 +235,10 @@ export function DataTable<Row>({
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
         <div>{toolbar}</div>
         <div className="flex items-center gap-4">
+          <span className="hidden text-xs lg:inline">
+            <kbd className={kbd}>j</kbd> <kbd className={kbd}>k</kbd> move ·{" "}
+            <kbd className={kbd}>Enter</kbd> open · <kbd className={kbd}>/</kbd> search
+          </span>
           {optional.length ? (
             <details className="relative">
               <summary className="cursor-pointer list-none underline underline-offset-4">
@@ -263,13 +342,16 @@ export function DataTable<Row>({
               {shown.slice(start, end).map((r, i) => {
                 const key = rowKey(r);
                 const on = selected.has(key);
+                const active = key === activeKey;
                 return (
                   <tr
                     key={key}
                     data-row
                     aria-rowindex={start + i + 2}
                     aria-selected={bulkActions ? on : undefined}
-                    className={`whitespace-nowrap transition-colors hover:bg-ground/60 ${on ? "bg-ground" : ""}`}
+                    aria-current={active ? "true" : undefined}
+                    tabIndex={-1}
+                    className={`scroll-mt-12 scroll-mb-20 whitespace-nowrap transition-colors outline-none has-[:focus-visible]:bg-ground focus-visible:bg-ground ${active ? "bg-brand-soft shadow-[inset_3px_0_0_var(--color-brand)]" : on ? "bg-ground hover:bg-ground/60" : "hover:bg-ground/60"}`}
                   >
                     {bulkActions ? (
                       <td className={bodyCell}>
@@ -330,6 +412,7 @@ export function DataTable<Row>({
   );
 }
 
+const kbd = "rounded border border-line bg-surface px-1 font-sans text-[11px]";
 const headCell =
   "sticky top-0 z-10 h-row border-b border-line bg-surface px-3 font-medium whitespace-nowrap text-muted first:rounded-tl-xl last:rounded-tr-xl";
 const bodyCell = "h-row border-b border-line px-3";

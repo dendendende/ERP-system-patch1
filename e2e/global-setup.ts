@@ -50,6 +50,14 @@ async function tidyTestBills(db: Client) {
   await db.query(`delete from entries where bank_transaction_id in (${hand})`);
   await db.query(`delete from bank_transactions where id in (${hand})`);
   await db.query("alter table bank_transactions enable trigger bank_transactions_no_update_delete");
+  // the statement row the hand-entry test imports (dated 2020) stays, like every bank row; label
+  // it, or it sits at the top of "Needs a label" (oldest first) and crowds other tests' rows out
+  await db.query(
+    `update entries set status = 'labelled',
+            category_id = (select id from categories where is_system and type = 'in' and name = 'Other income')
+      where status = 'needs_label'
+        and bank_transaction_id in (select id from bank_transactions where description_raw like 'E2E HANDTEST CR %')`,
+  );
   await db.query("commit");
 }
 

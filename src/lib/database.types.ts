@@ -453,6 +453,7 @@ export type Database = {
           unique_amount: number | null
           unique_code: number
           void_reason: string | null
+          voided_at: string | null
         }
         Insert: {
           amount_due: number
@@ -472,6 +473,7 @@ export type Database = {
           unique_amount?: number | null
           unique_code: number
           void_reason?: string | null
+          voided_at?: string | null
         }
         Update: {
           amount_due?: number
@@ -491,6 +493,7 @@ export type Database = {
           unique_amount?: number | null
           unique_code?: number
           void_reason?: string | null
+          voided_at?: string | null
         }
         Relationships: [
           {
@@ -543,6 +546,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      metric_snapshots: {
+        Row: {
+          metric: string
+          rupiah: number | null
+          taken_on: string
+          value: number | null
+        }
+        Insert: {
+          metric: string
+          rupiah?: number | null
+          taken_on: string
+          value?: number | null
+        }
+        Update: {
+          metric?: string
+          rupiah?: number | null
+          taken_on?: string
+          value?: number | null
+        }
+        Relationships: []
       }
       parallel_run_weeks: {
         Row: {
@@ -1313,6 +1337,7 @@ export type Database = {
       }
     }
     Functions: {
+      aging_bucket: { Args: { p_due: string; p_on: string }; Returns: number }
       apply_payment: {
         Args: {
           p_amount: number
@@ -1411,6 +1436,7 @@ export type Database = {
           unique_amount: number | null
           unique_code: number
           void_reason: string | null
+          voided_at: string | null
         }
         SetofOptions: {
           from: "*"
@@ -1446,6 +1472,15 @@ export type Database = {
         }[]
       }
       invoice_number: { Args: { n: number }; Returns: string }
+      invoice_owed_on: {
+        Args: { p_on: string }
+        Returns: {
+          customer_id: string
+          due_on: string
+          invoice_id: string
+          owed: number
+        }[]
+      }
       invoice_paid: { Args: { p_invoice_id: string }; Returns: number }
       jakarta_today: { Args: never; Returns: string }
       lock_unique_amounts: { Args: never; Returns: undefined }
@@ -1559,6 +1594,15 @@ export type Database = {
           went_out: number
         }[]
       }
+      mrr_summary: {
+        Args: { p_on?: string }
+        Returns: {
+          active: number
+          arr: number
+          arr_added: number
+          arr_lost: number
+        }[]
+      }
       needs_label_inbox: {
         Args: { p_limit?: number }
         Returns: {
@@ -1572,6 +1616,18 @@ export type Database = {
         }[]
       }
       payee_pattern: { Args: { p_description: string }; Returns: string }
+      receivables_summary: {
+        Args: { p_on?: string }
+        Returns: {
+          aging: number[]
+          begin_30: number
+          migrated_from: number[]
+          migrated_to: number[]
+          sales_30: number
+          sales_90: number
+          voided_30: number
+        }[]
+      }
       record_by_hand: {
         Args: {
           p_account: string
@@ -1615,11 +1671,54 @@ export type Database = {
         Args: { p_due_on: string; p_offset_days: number }
         Returns: string
       }
+      renewal_counts: {
+        Args: { p_on?: string }
+        Returns: {
+          lost: number
+          renewed: number
+        }[]
+      }
+      revenue_by_customer: {
+        Args: { p_on?: string }
+        Returns: {
+          customer: string
+          customer_id: string
+          total: number
+        }[]
+      }
+      revenue_by_plan: {
+        Args: { p_on?: string }
+        Returns: {
+          plan: string
+          total: number
+        }[]
+      }
       schedule_reminders: { Args: { p_invoice_id: string }; Returns: number }
       send_reminder_now: { Args: { p_invoice_id: string }; Returns: string }
       set_reminders_paused: {
         Args: { p_customer_id: string; p_paused: boolean; p_reason: string }
         Returns: undefined
+      }
+      spending_summary: {
+        Args: { p_on?: string }
+        Returns: {
+          category: string
+          category_id: string
+          is_recurring: boolean
+          last_3_months: number
+          this_month: number
+        }[]
+      }
+      subscription_state_on: {
+        Args: { p_on: string }
+        Returns: {
+          customer_id: string
+          cycle: string
+          is_active: boolean
+          plan_name: string
+          price: number
+          subscription_id: string
+        }[]
       }
       suggest_categories: {
         Args: { p_description: string; p_direction: string }
@@ -1665,6 +1764,27 @@ export type Database = {
         Args: { p_key: string; p_max: number; p_window_seconds: number }
         Returns: boolean
       }
+      top_overdue: {
+        Args: { p_limit?: number; p_on?: string }
+        Returns: {
+          customer: string
+          customer_id: string
+          days_late: number
+          invoice_id: string
+          last_reminded: string
+          number: string
+          owed: number
+        }[]
+      }
+      top_payees: {
+        Args: { p_limit?: number; p_on?: string }
+        Returns: {
+          named: boolean
+          payee: string
+          payments: number
+          total: number
+        }[]
+      }
       transaction_unapplied: {
         Args: { p_bank_transaction_id: string }
         Returns: number
@@ -1690,6 +1810,7 @@ export type Database = {
           unique_amount: number | null
           unique_code: number
           void_reason: string | null
+          voided_at: string | null
         }
         SetofOptions: {
           from: "*"
@@ -1697,6 +1818,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      yearly_value: {
+        Args: { p_cycle: string; p_price: number }
+        Returns: number
       }
     }
     Enums: {

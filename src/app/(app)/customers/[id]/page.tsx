@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, EmptyState, StatusPill } from "@/components/ui";
 import { customerHeadline, longDay } from "@/lib/customer-summary";
+import { INVOICE_STATUS } from "@/lib/invoice-status";
 import { formatRupiah } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 import { EditInvoice, NewInvoiceForm } from "./invoice-forms";
@@ -15,13 +16,6 @@ const CYCLE: Record<string, string> = {
   monthly: "every month",
   quarterly: "every 3 months",
   yearly: "every year",
-};
-
-const INVOICE_STATUS: Record<string, { label: string; tone: "neutral" | "in" | "attention" }> = {
-  open: { label: "Waiting", tone: "attention" },
-  partly_paid: { label: "Partly paid", tone: "attention" },
-  paid: { label: "Paid", tone: "in" },
-  void: { label: "Cancelled", tone: "neutral" },
 };
 
 /** How much of the invoice is paid, as a bar. */
@@ -59,32 +53,40 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
     { data: me },
     { data: contact },
   ] = await Promise.all([
-      supabase.from("customers").select("id, name, notes, reminders_paused").eq("id", id).maybeSingle(),
-      supabase.from("customer_billing").select("still_owed::text, next_due, renews_on, is_late").eq("id", id).maybeSingle(),
-      supabase
-        .from("invoices")
-        .select(
-          "id, number, status, notes, amount_due::text, transfer_amount::text, issued_on, due_on, payments (amount_applied::text)",
-        )
-        .eq("customer_id", id)
-        .order("due_on", { ascending: false })
-        // same due date: newest first, so a bill just written is always among the 20 shown
-        .order("created_at", { ascending: false })
-        .limit(20),
-      supabase
-        .from("subscriptions")
-        .select("id, plan_name, price::text, cycle, status, start_date, next_invoice_date, end_date")
-        .eq("customer_id", id)
-        .order("next_invoice_date"),
-      // my own row: everyone can see the whole team, so ask for this user explicitly
-      supabase
-        .from("users")
-        .select("role")
-        .eq("id", user?.id ?? "")
-        .maybeSingle(),
-      // phone and email: owner and operator only (empty for viewers — the database decides)
-      supabase.rpc("customer_contacts").eq("customer_id", id).maybeSingle(),
-    ]);
+    supabase
+      .from("customers")
+      .select("id, name, notes, reminders_paused")
+      .eq("id", id)
+      .maybeSingle(),
+    supabase
+      .from("customer_billing")
+      .select("still_owed::text, next_due, renews_on, is_late")
+      .eq("id", id)
+      .maybeSingle(),
+    supabase
+      .from("invoices")
+      .select(
+        "id, number, status, notes, amount_due::text, transfer_amount::text, issued_on, due_on, payments (amount_applied::text)",
+      )
+      .eq("customer_id", id)
+      .order("due_on", { ascending: false })
+      // same due date: newest first, so a bill just written is always among the 20 shown
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("subscriptions")
+      .select("id, plan_name, price::text, cycle, status, start_date, next_invoice_date, end_date")
+      .eq("customer_id", id)
+      .order("next_invoice_date"),
+    // my own row: everyone can see the whole team, so ask for this user explicitly
+    supabase
+      .from("users")
+      .select("role")
+      .eq("id", user?.id ?? "")
+      .maybeSingle(),
+    // phone and email: owner and operator only (empty for viewers — the database decides)
+    supabase.rpc("customer_contacts").eq("customer_id", id).maybeSingle(),
+  ]);
   if (!customer) notFound();
   const canBill = me?.role === "owner" || me?.role === "operator";
   const isOwner = me?.role === "owner";
@@ -134,7 +136,11 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
             const left = total - paid;
             const status = INVOICE_STATUS[invoice.status] ?? INVOICE_STATUS.open;
             return (
-              <Card key={invoice.id} className="flex flex-col gap-3">
+              <Card
+                key={invoice.id}
+                id={`bill-${invoice.id}`}
+                className="flex scroll-mt-6 flex-col gap-3 target:ring-2 target:ring-brand"
+              >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-medium">{invoice.number}</span>
                   <StatusPill tone={status.tone}>{status.label}</StatusPill>

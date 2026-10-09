@@ -9,6 +9,7 @@ export const metadata = { title: "Renewals · Cashflow" };
 const TABS = [
   ["30", "Next 30 days"],
   ["60", "Next 60 days"],
+  ["90", "Next 90 days"],
 ] as const;
 
 const FLAGS = [
@@ -22,7 +23,7 @@ const day = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", ti
 
 export default async function RenewalsPage({ searchParams }: PageProps<"/customers/renewals">) {
   const params = await searchParams;
-  const within = params.within === "60" ? "60" : "30";
+  const within = TABS.find(([days]) => days === params.within)?.[0] ?? "30";
   const supabase = await createClient();
   const {
     data: { user },

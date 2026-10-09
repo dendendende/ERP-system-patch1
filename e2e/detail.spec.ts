@@ -28,7 +28,7 @@ test("editing a transaction shows up in its history with who and when", async ({
   await page.getByLabel("Note").fill(note);
   await page.getByRole("button", { name: "Save" }).click();
 
-  const history = page.locator("section, div").filter({ hasText: "Change history" }).last();
+  const history = page.getByRole("region", { name: "Change history" });
   await expect(history.getByText("E2E Operator").first()).toBeVisible();
   await expect(history.getByText(`"${note}"`)).toBeVisible();
   await expect(history.getByText("Category:").first()).toBeVisible();

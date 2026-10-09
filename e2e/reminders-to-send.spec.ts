@@ -15,7 +15,14 @@ test("a due reminder waits on Home until someone sends it by hand", async ({ pag
   await page.getByRole("button", { name: "Write bill" }).click();
   await expect(page.getByText("Bill written.")).toBeVisible();
   const bills = page.getByRole("region", { name: "Bills" });
-  const number = (await bills.locator(".rounded-xl").filter({ hasText: `Rp ${amount}` }).first().getByText(/^INV-\d+$/).innerText()).trim();
+  const number = (
+    await bills
+      .locator(".rounded-xl")
+      .filter({ hasText: `Rp ${amount}` })
+      .first()
+      .getByText(/^INV-\d+$/)
+      .innerText()
+  ).trim();
 
   // it's on Home's list, with the message ready to copy or open in email
   await page.goto("/");
@@ -23,11 +30,18 @@ test("a due reminder waits on Home until someone sends it by hand", async ({ pag
   const item = list.locator("div.border-b").filter({ hasText: number });
   await expect(item.getByText(`Send the bill · ${CUSTOMER}`)).toBeVisible();
   await item.getByText("Read the message").click();
-  await expect(item.getByText(/We only accept payment to|Kami hanya menerima pembayaran/)).toBeVisible();
-  await expect(item.getByRole("link", { name: "Open in email" })).toHaveAttribute("href", /^mailto:ap@karyadigital\.example\?subject=/);
+  await expect(
+    item.getByText(/We only accept payment to|Kami hanya menerima pembayaran/),
+  ).toBeVisible();
+  await expect(item.getByRole("link", { name: "Open in email" })).toHaveAttribute(
+    "href",
+    /^mailto:ap@karyadigital\.example\?subject=/,
+  );
 
   // the bill's PDF, to attach by hand
-  const pdfHref = await item.getByRole("link", { name: "Download the bill (PDF)" }).getAttribute("href");
+  const pdfHref = await item
+    .getByRole("link", { name: "Download the bill (PDF)" })
+    .getAttribute("href");
   const pdf = await page.request.get(pdfHref!);
   expect(pdf.headers()["content-type"]).toBe("application/pdf");
   expect((await pdf.body()).subarray(0, 5).toString()).toBe("%PDF-");
@@ -38,7 +52,12 @@ test("a due reminder waits on Home until someone sends it by hand", async ({ pag
   await page.goto("/customers");
   await page.getByRole("link", { name: CUSTOMER }).click();
   const timeline = page.getByRole("region", { name: "Reminders" });
-  await expect(timeline.locator("li").filter({ hasText: `The bill · ${number}` }).getByText("Sent by hand")).toBeVisible();
+  await expect(
+    timeline
+      .locator("li")
+      .filter({ hasText: `The bill · ${number}` })
+      .getByText("Sent by hand"),
+  ).toBeVisible();
 
   // tidy up: cancel the test bill
   const card = bills.locator(".rounded-xl").filter({ hasText: number }).first();
@@ -49,9 +68,12 @@ test("a due reminder waits on Home until someone sends it by hand", async ({ pag
 });
 
 test("the bill's PDF is not available to someone signed out", async ({ request }) => {
-  const res = await request.get("/customers/00000000-0000-0000-0000-000000000000/bills/00000000-0000-0000-0000-000000000000/pdf", {
-    maxRedirects: 0,
-  });
+  const res = await request.get(
+    "/customers/00000000-0000-0000-0000-000000000000/bills/00000000-0000-0000-0000-000000000000/pdf",
+    {
+      maxRedirects: 0,
+    },
+  );
   expect(res.status()).not.toBe(200);
   expect(res.headers()["content-type"] ?? "").not.toContain("application/pdf");
 });

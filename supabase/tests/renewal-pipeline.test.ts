@@ -91,10 +91,10 @@ describe("renewal pipeline", () => {
     });
   });
 
-  it("only active subscriptions renewing in the next 60 days", async () => {
+  it("only active subscriptions renewing in the next 90 days", async () => {
     await withRulesOff(async (db) => {
-      const soon = await customerWithSubscription(db, "PT Soon", 59);
-      const far = await customerWithSubscription(db, "PT Far", 61);
+      const soon = await customerWithSubscription(db, "PT Soon", 89);
+      const far = await customerWithSubscription(db, "PT Far", 91);
       const off = await customerWithSubscription(db, "PT Off", 5);
       await db.query("update subscriptions set status = 'paused' where id = $1", [off.sub]);
       expect(await flags(db, soon.sub)).toBeDefined();

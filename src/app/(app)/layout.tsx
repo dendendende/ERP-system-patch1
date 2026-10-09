@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { CommandPalette } from "@/components/command-palette";
 import { Logo, SidebarNav, TabBar } from "@/components/nav";
+import { jumpsFor } from "@/lib/command-palette";
 import { currentSyncState } from "@/lib/bank/current-sync";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "../login/actions";
@@ -28,6 +30,23 @@ async function SyncStatus({ onDark = false }: { onDark?: boolean }) {
   );
 }
 
+function SearchIcon() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      className="size-4 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </svg>
+  );
+}
+
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const supabase = await createClient();
   const {
@@ -50,6 +69,15 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <Logo className="size-7" />
           Cashflow
         </p>
+        <button
+          type="button"
+          data-open-palette
+          className="-mt-3 flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-left text-sm text-nav-ink transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        >
+          <SearchIcon />
+          <span className="flex-1">Find or jump to</span>
+          <kbd className="rounded border border-white/15 px-1 text-[11px]">Ctrl K</kbd>
+        </button>
         <SidebarNav />
         <div className="mt-auto flex flex-col gap-4 px-3">
           <SyncStatus onDark />
@@ -81,7 +109,17 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <Logo className="size-6" />
           Cashflow
         </p>
-        <SyncStatus />
+        <div className="flex items-center gap-3">
+          <SyncStatus />
+          <button
+            type="button"
+            data-open-palette
+            aria-label="Find or jump to"
+            className="grid size-9 place-items-center rounded-lg text-muted hover:bg-ground hover:text-ink"
+          >
+            <SearchIcon />
+          </button>
+        </div>
       </header>
 
       <main
@@ -89,10 +127,14 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         tabIndex={-1}
         className="min-w-0 flex-1 px-4 pt-6 pb-24 md:px-10 md:pt-10 md:pb-10"
       >
-        <div className="rise mx-auto max-w-5xl">{children}</div>
+        {/* a list page with its side panel open gets the room for both (AnalyticalListPage) */}
+        <div className="rise mx-auto max-w-5xl has-[[data-panel-open]]:xl:max-w-7xl">
+          {children}
+        </div>
       </main>
 
       <TabBar />
+      <CommandPalette jumps={jumpsFor(me?.role)} />
     </div>
   );
 }

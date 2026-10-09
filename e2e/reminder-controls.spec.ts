@@ -13,7 +13,11 @@ test("send a reminder now, pause and resume — then tidy up", async ({ page }, 
   await page.getByLabel("Amount (Rp)").fill(amount);
   await page.getByRole("button", { name: "Write bill" }).click();
   await expect(page.getByText("Bill written.")).toBeVisible();
-  const bill = page.getByRole("region", { name: "Bills" }).locator(".rounded-xl").filter({ hasText: `Rp ${amount}` }).first();
+  const bill = page
+    .getByRole("region", { name: "Bills" })
+    .locator(".rounded-xl")
+    .filter({ hasText: `Rp ${amount}` })
+    .first();
   const number = (await bill.getByText(/^INV-\d+$/).innerText()).trim();
 
   // put one on today's list; the timeline shows it waiting to be sent
@@ -27,14 +31,22 @@ test("send a reminder now, pause and resume — then tidy up", async ({ page }, 
   await expect(timeline.getByText("Say why reminders are being paused.")).toBeVisible();
   await timeline.getByLabel("Pause reminders — why?").fill("Agreed to pay next month");
   await timeline.getByRole("button", { name: "Pause reminders" }).click();
-  await expect(timeline.getByText("Reminders are paused for this customer.", { exact: false })).toBeVisible();
+  await expect(
+    timeline.getByText("Reminders are paused for this customer.", { exact: false }),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "Add a reminder to send today" })).toHaveCount(0);
 
   await timeline.getByRole("button", { name: "Turn reminders back on" }).click();
-  await expect(timeline.getByText("Reminders are paused for this customer.", { exact: false })).toHaveCount(0);
+  await expect(
+    timeline.getByText("Reminders are paused for this customer.", { exact: false }),
+  ).toHaveCount(0);
 
   // tidy up: cancel the test bill (its queued reminders are cancelled with it)
-  const card = page.getByRole("region", { name: "Bills" }).locator(".rounded-xl").filter({ hasText: number }).first();
+  const card = page
+    .getByRole("region", { name: "Bills" })
+    .locator(".rounded-xl")
+    .filter({ hasText: number })
+    .first();
   await card.locator("summary").click();
   await card.getByLabel("Cancel this bill — why?").fill("End of test");
   await card.getByRole("button", { name: "Cancel bill" }).click();
@@ -48,5 +60,7 @@ test("a viewer sees the timeline but none of the controls", async ({ page }, tes
   await page.getByRole("link", { name: CUSTOMER }).click();
   await expect(page.getByRole("region", { name: "Reminders" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add a reminder to send today" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Pause reminders|Turn reminders back on/ })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /Pause reminders|Turn reminders back on/ }),
+  ).toHaveCount(0);
 });

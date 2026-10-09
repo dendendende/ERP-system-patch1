@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Button, Card, Input, StatusPill } from "@/components/ui";
+import { Button, Input, StatusPill } from "@/components/ui";
 import { formatRupiah } from "@/lib/money";
 import { matchToInvoice, type MatchState } from "./actions";
 import { useFormAction } from "@/components/use-form-action";
@@ -37,9 +37,9 @@ export function MatchToInvoice({
   const best = candidates[0];
   const suggested = best ? (BigInt(best.owed) < BigInt(amount) ? best.owed : amount) : amount;
 
+  // the section around it ("Which bill did this pay?") is the transaction's object page's
   return (
-    <Card className="flex flex-col gap-4">
-      <h2 className="font-display text-xl">Which bill did this pay?</h2>
+    <>
       {candidates.length ? (
         <form onSubmit={action} className="flex flex-col gap-4">
           <input type="hidden" name="transactionId" value={transactionId} />
@@ -87,6 +87,6 @@ export function MatchToInvoice({
         Matching records a payment in your name. Payments are never deleted, so a wrong match is
         corrected by matching the rest — ask the owner if a bill needs settling another way.
       </p>
-    </Card>
+    </>
   );
 }

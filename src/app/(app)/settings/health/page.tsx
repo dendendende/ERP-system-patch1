@@ -6,7 +6,10 @@ import { LimitForm } from "./limit-form";
 export const metadata = { title: "Health limits · Settings · Cashflow" };
 
 // What each limit means, in plain words. "Danger when" is past the warning limit.
-const SIGNALS: Record<string, { title: string; explain: string; unit: string; safe: string; warn: string }> = {
+const SIGNALS: Record<
+  string,
+  { title: string; explain: string; unit: string; safe: string; warn: string }
+> = {
   runway: {
     title: "How long the cash lasts",
     explain: "Months the money in the bank lasts at your usual regular costs.",
@@ -43,6 +46,59 @@ const SIGNALS: Record<string, { title: string; explain: string; unit: string; sa
     safe: "under",
     warn: "over",
   },
+  forecast_low: {
+    title: "Lowest point in the next 90 days",
+    explain:
+      "The least money the forecast expects you to have. Set the floor you never want to go below.",
+    unit: "Rp",
+    safe: "above",
+    warn: "below",
+  },
+  forecast_off: {
+    title: "How close the forecast was",
+    explain:
+      "After each month: how far the forecast made on the 1st was off, as a share of the money it expected to move.",
+    unit: "%",
+    safe: "off by under",
+    warn: "off by over",
+  },
+  overdue_share: {
+    title: "Bills past their due date",
+    explain: "Share of what customers owe that is past its due date, by any number of days.",
+    unit: "%",
+    safe: "under",
+    warn: "over",
+  },
+  over_90_share: {
+    title: "Bills more than 90 days late",
+    explain: "Share of what customers owe that is more than 90 days late — the money most at risk.",
+    unit: "%",
+    safe: "under",
+    warn: "over",
+  },
+  dso: {
+    title: "Days customers take to pay",
+    explain:
+      "What customers owe, measured in days of billing (last 90 days). Subscription businesses usually sit at 30–45.",
+    unit: "days",
+    safe: "under",
+    warn: "over",
+  },
+  cei: {
+    title: "Collecting what was due",
+    explain: "Over the last 30 days: the share of what customers had to pay that actually came in.",
+    unit: "%",
+    safe: "more than",
+    warn: "less than",
+  },
+  spend_jump: {
+    title: "Spending jumps",
+    explain:
+      "A category is flagged when this month's spending in it is this much above its usual month (the average of the last 3).",
+    unit: "% above usual",
+    safe: "under",
+    warn: "over",
+  },
 };
 
 export default async function HealthLimitsPage() {
@@ -60,10 +116,13 @@ export default async function HealthLimitsPage() {
         <h1 className="font-display text-3xl md:text-4xl">Health limits</h1>
         <p className="text-muted">
           Where each check turns from healthy to &ldquo;keep an eye on it&rdquo; to &ldquo;needs
-          attention&rdquo;. A change applies from the next daily check; past checks keep their result.
+          attention&rdquo;. A change applies from the next daily check; past checks keep their
+          result.
         </p>
       </div>
-      {error ? <p className="text-sm text-problem">Couldn&apos;t load the limits. Try again.</p> : null}
+      {error ? (
+        <p className="text-sm text-problem">Couldn&apos;t load the limits. Try again.</p>
+      ) : null}
       {Object.entries(SIGNALS).map(([signal, s]) => {
         const l = limits?.find((x) => x.signal === signal);
         if (!l) return null;

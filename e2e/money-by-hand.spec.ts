@@ -56,7 +56,7 @@ test("record by hand from Home → statement warns and takes details → cancel 
   await page.getByLabel("Statement file (CSV)").setInputFiles({
     name: `hand-${RUN}.csv`,
     mimeType: "text/csv",
-    buffer: Buffer.from(`date,description,amount\n${DAY},"E2E TRSF CR ${RUN}",${AMOUNT}\n`),
+    buffer: Buffer.from(`date,description,amount\n${DAY},"E2E HANDTEST CR ${RUN}",${AMOUNT}\n`),
   });
   await page.getByRole("button", { name: "Check file" }).click();
   await expect(
@@ -66,9 +66,9 @@ test("record by hand from Home → statement warns and takes details → cancel 
   await expect(page.getByText("Added 1 new transactions.")).toBeVisible();
 
   const details = page.getByRole("form", { name: "Add details" });
-  await details.getByLabel(`Who, for E2E TRSF CR ${RUN}`).fill(`PT Hand ${RUN}`);
+  await details.getByLabel(`Who, for E2E HANDTEST CR ${RUN}`).fill(`PT Hand ${RUN}`);
   await details
-    .getByLabel(`Note, for E2E TRSF CR ${RUN}`)
+    .getByLabel(`Note, for E2E HANDTEST CR ${RUN}`)
     .fill("March subscription, paid in cash first");
   await details.getByRole("button", { name: "Save details" }).click();
   await expect(details.getByText("Saved details for 1 transaction.")).toBeVisible();

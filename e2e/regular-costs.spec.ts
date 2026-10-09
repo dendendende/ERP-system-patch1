@@ -5,7 +5,9 @@ import { signIn } from "./auth";
 // every run.
 const NAME = "E2E test cost";
 
-test("the owner adds and changes a regular cost; a viewer only looks", async ({ browser }, testInfo) => {
+test("the owner adds and changes a regular cost; a viewer only looks", async ({
+  browser,
+}, testInfo) => {
   test.skip(testInfo.project.name === "phone", "desktop covers the flow");
   const owner = await browser.newPage();
   await signIn(owner, "e2e-owner@example.test");
@@ -17,11 +19,15 @@ test("the owner adds and changes a regular cost; a viewer only looks", async ({ 
   await expect(list.getByRole("heading", { name: "Your regular costs" })).toBeVisible();
   const card = list.locator(".rounded-xl").filter({ hasText: NAME });
   if ((await card.count()) === 0) {
-    const add = owner.locator(".rounded-xl").filter({ has: owner.getByRole("heading", { name: "Add a regular cost" }) });
+    const add = owner
+      .locator(".rounded-xl")
+      .filter({ has: owner.getByRole("heading", { name: "Add a regular cost" }) });
     await add.getByLabel("Name").fill(NAME);
     await add.getByLabel("Amount (Rp)").fill("12,5"); // not whole rupiah
     await add.getByRole("button", { name: "Add" }).click();
-    await expect(add.getByText("Write the amount in rupiah, for example 12.000.000.")).toBeVisible();
+    await expect(
+      add.getByText("Write the amount in rupiah, for example 12.000.000."),
+    ).toBeVisible();
     await add.getByLabel("Amount (Rp)").fill("550.000");
     await add.getByRole("button", { name: "Add" }).click();
     await expect(card).toHaveCount(1);
@@ -30,7 +36,10 @@ test("the owner adds and changes a regular cost; a viewer only looks", async ({ 
   // start it, then stop it: the state shows on the card
   await card.locator("summary").click(); // the panel stays open between saves
   // ends stopped, so this test row never counts in anyone's forecast
-  for (const [state, pill] of [["on", "Paying"], ["off", "Stopped"]] as const) {
+  for (const [state, pill] of [
+    ["on", "Paying"],
+    ["off", "Stopped"],
+  ] as const) {
     await card.locator("select[name=isActive]").selectOption(state);
     await card.getByRole("button", { name: "Save" }).click();
     await expect(card.locator(".rounded-full", { hasText: pill })).toBeVisible(); // the status pill

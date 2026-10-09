@@ -18,6 +18,22 @@
   --color-attention-bg: #fbedcd;
   --color-problem: #b4321f;
 
+  /* Charts: categories in this fixed order (checked with the dataviz palette validator on
+     white: colour-blind safe; 3, 4 and 5 are light, so charts always label them in text).
+     No red or green slot: those mean money out / in here. Past 6, the rest is "Other". */
+  --color-series-1: #2a78d6;
+  --color-series-2: #eb6834;
+  --color-series-3: #1baf7a;
+  --color-series-4: #eda100;
+  --color-series-5: #e87ba4;
+  --color-series-6: #4a3aa7;
+  --color-series-other: #9aa3b1;
+  /* how late: one hue, lighter to darker */
+  --color-late-1: #e98b72;
+  --color-late-2: #d4583f;
+  --color-late-3: #b4321f;
+  --color-late-4: #7d1d10;
+
   --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
 
@@ -63,6 +79,25 @@ body {
 }
 .rise > * > :nth-child(n + 5) {
   animation-delay: 160ms;
+}
+
+/* the side panel of a list page slides in; the list behind it stays put (after .rise: wins) */
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.panel-in {
+  animation: panel-in 200ms cubic-bezier(0, 0, 0.2, 1) backwards;
+}
+.panel-fade {
+  animation: fade-in 200ms ease-out backwards;
 }
 
 @media (prefers-reduced-motion: reduce) {

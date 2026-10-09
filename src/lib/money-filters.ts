@@ -5,7 +5,7 @@
 export const PAGE_SIZE = 500;
 
 export const DIRECTIONS = ["in", "out"] as const;
-export const STATUSES = ["needs_label", "labelled", "matched"] as const;
+export const STATUSES = ["needs_label", "labelled", "matched", "recurring"] as const;
 export const SORTS = ["date_desc", "date_asc", "amount_desc", "amount_asc"] as const;
 
 /** Column and direction for each sort; the list and its CSV file use the same one. */
@@ -34,6 +34,7 @@ export const STATUS_WORDS: Record<(typeof STATUSES)[number], string> = {
   needs_label: "Needs a label",
   labelled: "Labelled",
   matched: "Matched to a bill",
+  recurring: "Regular cost",
 };
 
 type Params = Record<string, string | string[] | undefined>;

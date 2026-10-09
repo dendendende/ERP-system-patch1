@@ -19,7 +19,9 @@ test("the owner changes a subscription; an operator can't", async ({ page }, tes
   const before = await price.inputValue();
   await price.fill("1.234,56");
   await form.getByRole("button", { name: "Save" }).click();
-  await expect(section.getByText("Write the price in rupiah, for example 1.500.000.")).toBeVisible();
+  await expect(
+    section.getByText("Write the price in rupiah, for example 1.500.000."),
+  ).toBeVisible();
 
   // pausing it, then putting it back as it was
   await price.fill(before);

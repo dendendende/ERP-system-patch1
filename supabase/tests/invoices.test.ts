@@ -171,7 +171,12 @@ describe("invoice permissions", () => {
         {
           actor_id: owner,
           reason: "Customer cancelled",
-          new_value: { status: "void", transfer_amount: null, void_reason: "Customer cancelled" },
+          new_value: {
+            status: "void",
+            transfer_amount: null,
+            void_reason: "Customer cancelled",
+            voided_at: expect.any(String), // stamped by the database
+          },
         },
       ]);
     });

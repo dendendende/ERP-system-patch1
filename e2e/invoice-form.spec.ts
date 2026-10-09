@@ -19,10 +19,15 @@ test("an operator writes a bill, changes it, and cancels it", async ({ page }, t
   await expect(page.getByText("Bill written.")).toBeVisible();
 
   // the bill asks for the amount plus the few digits that identify it
-  const newest = bills.locator(".rounded-xl").filter({ hasText: `Rp ${amount}` }).first();
+  const newest = bills
+    .locator(".rounded-xl")
+    .filter({ hasText: `Rp ${amount}` })
+    .first();
   await expect(newest).toContainText(`Rp ${amount}`);
   await expect(newest).toContainText(
-    new RegExp(`Ask them to transfer exactly Rp ${amount.replace(/\./g, "\\.").slice(0, -2)}\\d\\d`),
+    new RegExp(
+      `Ask them to transfer exactly Rp ${amount.replace(/\./g, "\\.").slice(0, -2)}\\d\\d`,
+    ),
   );
 
   // an amount that isn't whole rupiah is refused, in plain words

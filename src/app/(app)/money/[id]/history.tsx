@@ -1,4 +1,3 @@
-import { Card } from "@/components/ui";
 import { formatRupiah } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 
@@ -47,12 +46,7 @@ export async function History({
     .limit(50);
 
   if (!rows?.length) {
-    return (
-      <Card className="flex flex-col gap-2">
-        <h2 className="font-display text-xl">Change history</h2>
-        <p className="text-sm text-muted">Nothing has been changed since it arrived.</p>
-      </Card>
-    );
+    return <p className="text-sm text-muted">Nothing has been changed since it arrived.</p>;
   }
 
   const actorIds = [...new Set(rows.map((r) => r.actor_id).filter((id): id is string => !!id))];
@@ -86,53 +80,50 @@ export async function History({
   };
 
   return (
-    <Card className="flex flex-col gap-4">
-      <h2 className="font-display text-xl">Change history</h2>
-      <ol className="flex flex-col gap-4">
-        {rows.map((row) => {
-          const typed = row.action === "insert" ? (row.new_value as Record<string, unknown>) : null;
-          const changed = typed
-            ? []
-            : Object.keys((row.new_value as Record<string, unknown>) ?? {}).filter(
-                (field) => !HIDDEN_FIELDS.has(field),
-              );
-          return (
-            <li
-              key={row.id}
-              className="flex flex-col gap-1 border-b border-line pb-3 last:border-b-0 last:pb-0"
-            >
-              <p className="text-sm">
-                <span className="font-medium">
-                  {row.actor_id
-                    ? (nameOf.get(row.actor_id) ?? "Someone who left the team")
-                    : "The app"}
-                </span>{" "}
-                <span className="text-muted">· {when.format(new Date(row.created_at))}</span>
+    <ol className="flex flex-col gap-4">
+      {rows.map((row) => {
+        const typed = row.action === "insert" ? (row.new_value as Record<string, unknown>) : null;
+        const changed = typed
+          ? []
+          : Object.keys((row.new_value as Record<string, unknown>) ?? {}).filter(
+              (field) => !HIDDEN_FIELDS.has(field),
+            );
+        return (
+          <li
+            key={row.id}
+            className="flex flex-col gap-1 border-b border-line pb-3 last:border-b-0 last:pb-0"
+          >
+            <p className="text-sm">
+              <span className="font-medium">
+                {row.actor_id
+                  ? (nameOf.get(row.actor_id) ?? "Someone who left the team")
+                  : "The app"}
+              </span>{" "}
+              <span className="text-muted">· {when.format(new Date(row.created_at))}</span>
+            </p>
+            {typed ? (
+              <p className="text-sm text-muted">
+                Entered by hand: money {typed.direction === "in" ? "in" : "out"},{" "}
+                <span className="text-ink tabular-nums">
+                  {formatRupiah(BigInt(String(typed.amount)))}
+                </span>
               </p>
-              {typed ? (
-                <p className="text-sm text-muted">
-                  Entered by hand: money {typed.direction === "in" ? "in" : "out"},{" "}
-                  <span className="text-ink tabular-nums">
-                    {formatRupiah(BigInt(String(typed.amount)))}
+            ) : null}
+            <ul className="text-sm text-muted">
+              {changed.map((field) => (
+                <li key={field}>
+                  {FIELD_LABEL[field] ?? field}:{" "}
+                  {show(field, (row.old_value as Record<string, unknown>)?.[field])} →{" "}
+                  <span className="text-ink">
+                    {show(field, (row.new_value as Record<string, unknown>)?.[field])}
                   </span>
-                </p>
-              ) : null}
-              <ul className="text-sm text-muted">
-                {changed.map((field) => (
-                  <li key={field}>
-                    {FIELD_LABEL[field] ?? field}:{" "}
-                    {show(field, (row.old_value as Record<string, unknown>)?.[field])} →{" "}
-                    <span className="text-ink">
-                      {show(field, (row.new_value as Record<string, unknown>)?.[field])}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              {row.reason ? <p className="text-sm">Reason: {row.reason}</p> : null}
-            </li>
-          );
-        })}
-      </ol>
-    </Card>
+                </li>
+              ))}
+            </ul>
+            {row.reason ? <p className="text-sm">Reason: {row.reason}</p> : null}
+          </li>
+        );
+      })}
+    </ol>
   );
 }

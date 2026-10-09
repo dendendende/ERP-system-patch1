@@ -13,7 +13,9 @@ test("a customer's page shows their bill, what is paid, and the amount to transf
 
   await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
   // the headline is one plain sentence about where they stand
-  await expect(page.getByText(/^(All paid up|Waiting for Rp|Paid part of their bill|Rp .+ is late)/)).toBeVisible();
+  await expect(
+    page.getByText(/^(All paid up|Waiting for Rp|Paid part of their bill|Rp .+ is late)/),
+  ).toBeVisible();
 
   const bills = page.getByRole("region", { name: "Bills" });
   await expect(bills.getByText(/INV-\d+/).first()).toBeVisible();
@@ -23,5 +25,7 @@ test("a customer's page shows their bill, what is paid, and the amount to transf
   await expect(bills.getByText("Ask them to transfer exactly").first()).toBeVisible();
 
   await expect(page.getByRole("region", { name: "Subscription" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Reminders" })).toContainText("What we've sent them");
+  await expect(page.getByRole("region", { name: "Reminders" })).toContainText(
+    "What we've sent them",
+  );
 });

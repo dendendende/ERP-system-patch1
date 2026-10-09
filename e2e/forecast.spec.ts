@@ -10,7 +10,9 @@ for (const email of ["e2e-owner@example.test", "e2e-viewer@example.test"]) {
     await expect(page.getByRole("heading", { level: 1, name: "Cash forecast" })).toBeVisible();
     await expect(page.getByText(/^In 60 days you'll have about Rp/)).toBeVisible();
     await expect(page.getByRole("img", { name: /next 90 days/ })).toBeVisible();
-    await expect(page.getByText("Forecast assumes customers pay like they usually do.")).toBeVisible();
+    await expect(
+      page.getByText("Forecast assumes customers pay like they usually do."),
+    ).toBeVisible();
     await page.getByText("What this forecast assumes").click();
     await expect(page.getByText("Starts from the money in the bank today.")).toBeVisible();
   });

@@ -46,7 +46,7 @@ test("sign in → label → bill → payment matched → reminders cancelled", a
   await list.getByRole("link", { name: new RegExp(payee) }).click();
   await page.getByLabel("What was this for?").selectOption({ index: 1 });
   await page.getByRole("button", { name: "Save" }).click();
-  const history = page.locator("section, div").filter({ hasText: "Change history" }).last();
+  const history = page.getByRole("region", { name: "Change history" });
   await expect(history.getByText("E2E Operator").first()).toBeVisible();
   await page.goto(search);
   await expect(list.getByText("Needs label")).toHaveCount(0);
