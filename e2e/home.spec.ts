@@ -7,10 +7,13 @@ test("Home says where the money stands at a glance", async ({ page }, testInfo) 
   await page.goto("/");
 
   await expect(page.getByText(/^You have Rp .+ in the bank/)).toBeVisible();
-  const month = page.getByRole("region", { name: "This month" });
-  for (const label of ["Came in this month", "Went out this month", "Still owed to you"]) {
-    await expect(month.getByText(label)).toBeVisible();
+  // the viewer gets the owner's cues, without the ones that open owner-only pages
+  const cues = page.getByRole("region", { name: "Your numbers" });
+  for (const label of ["Cash in the bank", "Still owed to you", "Subscriptions a month"]) {
+    await expect(cues.getByText(label)).toBeVisible();
   }
+  await expect(cues.getByText("Marked paid by hand")).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Add money" })).toHaveCount(0); // read-only
   const chart = page.getByRole("region", { name: "Money in and out" });
   await expect(chart.getByRole("table")).toHaveCount(1); // the numbers behind the bars
   await expect(chart.getByText(/months|pattern/)).toBeVisible();
@@ -52,17 +55,61 @@ test("every number on Home opens the list behind it, already filtered", async ({
 }, testInfo) => {
   test.skip(testInfo.project.name === "phone", "desktop covers the flow");
   await signIn(page, "e2e-owner@example.test");
-  const month = page.getByRole("region", { name: "This month" });
+  const cues = page.getByRole("region", { name: "Your numbers" });
   for (const [cue, url] of [
-    [/^Came in this month: Rp/, /\/money\?dir=in&from=\d{4}-\d{2}-01&to=\d{4}-\d{2}-\d{2}$/],
-    [/^Went out this month: Rp/, /\/money\?dir=out&from=\d{4}-\d{2}-01/],
-    [/^Still owed to you: Rp/, /\/customers/],
-    [/^Need a label: \d+ transactions?/, /\/money\?status=needs_label$/],
-    [/^Paying late: \d+ customers?/, /\/customers\?show=late$/],
+    [/^Cash in the bank: Rp/, /\/settings\/bank$/],
+    [/^Lowest point, next 90 days: Rp/, /\/forecast$/],
+    [/^Left over this month: Rp/, /\/money\?from=\d{4}-\d{2}-01&to=\d{4}-\d{2}-\d{2}$/],
+    [/^Cash lasts:/, /\/money\?dir=out&status=recurring&from=/],
+    [/^Owed that is past due:/, /\/customers\?show=late$/],
+    [/^Subscriptions a month: Rp/, /\/customers\?show=active$/],
   ] as const) {
     await page.goto("/");
-    await month.getByRole("link", { name: cue }).click();
+    await cues.getByRole("link", { name: cue }).click();
     await expect(page).toHaveURL(url);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   }
+});
+
+test("the operator's Home starts with the day's work", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "desktop covers the flow");
+  await signIn(page, "e2e-operator@example.test");
+  const cues = page.getByRole("region", { name: "Your numbers" });
+  await expect(cues.getByRole("link").first()).toHaveAccessibleName(/^Need a label: \d+/);
+  await expect(cues.getByText("Lowest point, next 90 days")).toHaveCount(0); // no forecast
+  for (const [cue, url] of [
+    [/^Need a label: \d+ transactions?/, /\/money\?status=needs_label$/],
+    [/^Money in not matched: \d+/, /\/money\?dir=in&status=needs_label$/],
+    [/^Paying late: \d+ customers?/, /\/customers\?show=late$/],
+    [/^Came in this month: Rp/, /\/money\?dir=in&from=\d{4}-\d{2}-01&to=\d{4}-\d{2}-\d{2}$/],
+  ] as const) {
+    await page.goto("/");
+    await cues.getByRole("link", { name: cue }).click();
+    await expect(page).toHaveURL(url);
+  }
+});
+
+test("each person arranges their own Home: move, hide, back to the start", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "desktop covers the flow");
+  await signIn(page, "e2e-operator@example.test");
+  await page.goto("/?arrange=1");
+  await page.getByRole("button", { name: "Back to the starting set" }).click();
+  const cues = page.getByRole("region", { name: "Your numbers" }).getByRole("link");
+
+  await page.getByRole("button", { name: "Move Need a label down" }).click();
+  await expect(cues.first()).toHaveAccessibleName(/^Money in not matched/);
+  await page.getByRole("button", { name: "Hide Need a label" }).click();
+  await expect(cues.filter({ hasText: "Need a label" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Show Days to get paid" }).click();
+  await expect(cues.last()).toHaveAccessibleName(/^Days to get paid/);
+
+  // kept after leaving
+  await page.getByRole("link", { name: "Done" }).click();
+  await expect(cues.first()).toHaveAccessibleName(/^Money in not matched/);
+
+  await page.goto("/?arrange=1");
+  await page.getByRole("button", { name: "Back to the starting set" }).click();
+  await expect(cues.first()).toHaveAccessibleName(/^Need a label/);
 });

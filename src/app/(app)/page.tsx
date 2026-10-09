@@ -1,19 +1,37 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { Cue, CueGrid, CueSkeleton } from "@/components/cue";
-import { Card } from "@/components/ui";
-import { canAccess } from "@/lib/auth/routes";
+import { ShareBars } from "@/components/charts";
+import { CueGrid, CueSkeleton } from "@/components/cue";
+import { Card, Skeleton } from "@/components/ui";
+import { type Role, canAccess } from "@/lib/auth/routes";
 import { currentSyncState } from "@/lib/bank/current-sync";
 import { staleAfterHours } from "@/lib/bank/sync-status";
 import { type HealthStatus, worstStatus } from "@/lib/health-status";
 import { homeHeadline, trendSentence } from "@/lib/home";
-import { formatRupiah, formatRupiahShort } from "@/lib/money";
+import { arrange, cueInfo } from "@/lib/home-cues";
+import { formatRupiah } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
+import { ArrangeCues } from "./arrange-cues";
+import { HomeCue, lastSevenDays, monthly, revenue, spending, summary } from "./home-cues";
 import { NewDevices } from "./new-devices";
 import { SetupCard } from "./setup-card";
-import { CallTheseCustomers, RemindersToSend, TodayActivity } from "./today";
+import { CallTheseCustomers, FailedMessages, RemindersToSend, TodayActivity } from "./today";
 
 export const metadata = { title: "Home · Cashflow" };
+
+// Home (P8-T6): headline → cues → charts → lists → shortcuts. Which cues, and in what order,
+// depends on the role (lib/home-cues.ts).
+
+const SHORTCUTS: [href: string, text: string][] = [
+  ["/money?status=needs_label", "Label money"],
+  ["/money/import", "Import a bank file"],
+  ["/customers?show=late", "Customers paying late"],
+  ["/customers/renewals", "Renewals"],
+  ["/money/regular-costs", "Regular costs"],
+  ["/forecast", "Next 90 days"],
+  ["/health", "Business health"],
+  ["/settings/weekly-summary", "Weekly summary"],
+];
 
 const HEALTH_WORDS: Record<HealthStatus, string> = {
   healthy: "Business looks healthy",
@@ -85,50 +103,52 @@ function InOutChart({
   );
 }
 
-/** Counts load on their own: a slow one never holds up the page. */
-async function NeedsLabelCue() {
-  const supabase = await createClient();
-  const { count } = await supabase
-    .from("entries")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "needs_label");
+/** Who paid the most over the last 12 months: the concentration cue, as a picture. */
+async function TopCustomers({ today }: { today: string }) {
+  const top = (await revenue(today)).byCustomer.slice(0, 5);
+  if (!top.length) return null;
   return (
-    <Cue
-      label="Need a label"
-      value={count ?? 0}
-      unit={count === 1 ? "transaction" : "transactions"}
-      href="/money?status=needs_label"
-    />
+    <Card>
+      <ShareBars
+        label="Who paid you most, last 12 months"
+        items={top.map((c) => ({ label: c.name, value: c.total, tone: "in", href: c.href }))}
+      />
+    </Card>
   );
 }
 
-async function LateCustomersCue() {
-  const supabase = await createClient();
-  const { count } = await supabase
-    .from("customer_billing")
-    .select("id", { count: "exact", head: true })
-    .eq("is_late", true);
+/** Where the money went this month, biggest categories first. */
+async function TopCosts({ today }: { today: string }) {
+  const top = (await spending(today)).byCategory.filter((c) => c.thisMonth > 0n).slice(0, 5);
+  if (!top.length) return null;
   return (
-    <Cue
-      label="Paying late"
-      value={count ?? 0}
-      unit={count === 1 ? "customer" : "customers"}
-      href="/customers?show=late"
-    />
+    <Card>
+      <ShareBars
+        label="Where money went this month"
+        items={top.map((c) => ({
+          label: c.category,
+          value: c.thisMonth,
+          tone: "out",
+          href: c.href,
+        }))}
+      />
+    </Card>
   );
 }
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: PageProps<"/">) {
+  const arranging = (await searchParams).arrange === "1";
   const supabase = await createClient();
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [sync, summary, monthly, health, mismatches, me] = await Promise.all([
+  // the summary and months are cached for the request: the cues read the same ones
+  const [sync, s, monthRows, health, mismatches, me, layout] = await Promise.all([
     currentSyncState(),
-    supabase.rpc("money_summary").single(),
-    supabase.rpc("monthly_in_out"),
+    summary(),
+    monthly(),
     supabase
       .from("health_snapshots")
       .select("taken_on, signal, status")
@@ -144,13 +164,19 @@ export default async function HomePage() {
       .select("role")
       .eq("id", user?.id ?? "")
       .maybeSingle(),
+    // this person's own arrangement of the cues (none = the role's starting set)
+    supabase
+      .from("home_layouts")
+      .select("cues")
+      .eq("user_id", user?.id ?? "")
+      .maybeSingle(),
   ]);
 
   // Never show money worked out from a failed read: Rp 0 would look like an empty bank.
-  const failed = [summary, monthly, health, mismatches].find((r) => r.error);
+  const failed = [health, mismatches, layout].find((r) => r.error);
   if (failed?.error) throw new Error(`Home didn't load: ${failed.error.message}`);
 
-  const s = summary.data;
+  const role: Role = me.data?.role ?? "viewer";
   const big = (v: unknown) => BigInt(String(v ?? "0"));
   const cash = big(s?.cash_in_bank);
   const recurring = big(s?.recurring_spending);
@@ -160,16 +186,12 @@ export default async function HomePage() {
   const latest = health.data?.filter((h) => h.taken_on === health.data?.[0]?.taken_on) ?? [];
   const worst = worstStatus(latest.map((h) => h.status));
 
-  const months = (monthly.data ?? []).map((m) => ({
+  const months = monthRows.map((m) => ({
     month: m.month,
     came_in: big(m.came_in),
     went_out: big(m.went_out),
   }));
-  const pastDue = big(s?.past_due);
-  const monthStart = `${today.slice(0, 8)}01`;
-  // the colour of what is owed comes from the owner's limit for bills 30+ days late
-  const late = latest.find((h) => h.signal === "late_share");
-  const lateStatus = late ? (late.status as HealthStatus) : null;
+  const { shown, hidden } = arrange(role, layout.data?.cues ?? null);
   const todayWords = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",
@@ -273,42 +295,28 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* every number opens the list behind it */}
-      <CueGrid label="This month">
-        <Cue
-          wide
-          label="Came in this month"
-          value={big(s?.came_in)}
-          unit="rupiah"
-          href={`/money?dir=in&from=${monthStart}&to=${today}`}
-          caption={`usual month ${formatRupiahShort(big(s?.usual_came_in))}`}
-          spark={months.map((m) => Number(m.came_in))}
-        />
-        <Cue
-          wide
-          label="Went out this month"
-          value={big(s?.went_out)}
-          unit="rupiah"
-          href={`/money?dir=out&from=${monthStart}&to=${today}`}
-          caption={`usual month ${formatRupiahShort(big(s?.usual_went_out))}`}
-          spark={months.map((m) => Number(m.went_out))}
-        />
-        <Cue
-          wide
-          label="Still owed to you"
-          value={big(s?.still_owed)}
-          unit="rupiah"
-          href={pastDue > 0n ? "/customers?show=late" : "/customers"}
-          status={lateStatus}
-          caption={pastDue > 0n ? `${formatRupiahShort(pastDue)} is past due` : "nothing past due"}
-        />
-        <Suspense fallback={<CueSkeleton />}>
-          <NeedsLabelCue />
-        </Suspense>
-        <Suspense fallback={<CueSkeleton />}>
-          <LateCustomersCue />
-        </Suspense>
-      </CueGrid>
+      {/* every number opens the list behind it; each loads on its own */}
+      {arranging ? (
+        <ArrangeCues shown={shown} hidden={hidden} />
+      ) : (
+        <div className="flex justify-end">
+          <Link
+            href="/?arrange=1"
+            className="text-sm text-muted underline-offset-4 hover:text-brand hover:underline"
+          >
+            {shown.length ? "Arrange these numbers" : "All numbers are hidden — choose some"}
+          </Link>
+        </div>
+      )}
+      {shown.length ? (
+        <CueGrid label="Your numbers">
+          {shown.map((id) => (
+            <Suspense key={id} fallback={<CueSkeleton wide={cueInfo(id).wide} />}>
+              <HomeCue id={id} today={today} />
+            </Suspense>
+          ))}
+        </CueGrid>
+      ) : null}
 
       {months.length ? (
         <section aria-label="Money in and out" className="flex flex-col gap-3">
@@ -330,9 +338,31 @@ export default async function HomePage() {
         </section>
       ) : null}
 
+      <div className="grid gap-3 md:grid-cols-2">
+        <Suspense fallback={<Skeleton className="h-40" />}>
+          <TopCustomers today={today} />
+        </Suspense>
+        <Suspense fallback={<Skeleton className="h-40" />}>
+          <TopCosts today={today} />
+        </Suspense>
+      </div>
+
       <RemindersToSend />
+      <FailedMessages since={lastSevenDays()} />
       <CallTheseCustomers />
       <TodayActivity today={today} />
+
+      <nav aria-label="Shortcuts" className="flex flex-wrap gap-2 border-t border-line pt-4">
+        {SHORTCUTS.filter(([href]) => canAccess(role, href)).map(([href, text]) => (
+          <Link
+            key={href}
+            href={href}
+            className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm transition-colors hover:border-brand/40 hover:text-brand"
+          >
+            {text}
+          </Link>
+        ))}
+      </nav>
     </div>
   );
 }

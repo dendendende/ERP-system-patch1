@@ -42,6 +42,47 @@ export async function CallTheseCustomers() {
   );
 }
 
+/** Messages that didn't go out in the last 7 days (the "Messages not delivered" cue opens this). */
+export async function FailedMessages({ since }: { since: string }) {
+  const supabase = await createClient();
+  const { data: rows } = await supabase
+    .from("reminders")
+    .select(
+      "id, channel, error, scheduled_for, invoices!inner (number, customer_id, customers (name))",
+    )
+    .eq("status", "failed")
+    .gte("scheduled_for", since)
+    .order("scheduled_for", { ascending: false })
+    .limit(20);
+  if (!rows?.length) return null;
+  return (
+    <section
+      id="failed-messages"
+      aria-label="Messages not delivered"
+      className="flex scroll-mt-20 flex-col gap-3"
+    >
+      <h2 className="font-display text-xl">Messages not delivered</h2>
+      <Card className="p-0">
+        {rows.map((r) => (
+          <TableRow
+            key={r.id}
+            primary={
+              <Link
+                href={`/customers/${r.invoices.customer_id}`}
+                className="hover:underline underline-offset-4"
+              >
+                {r.invoices.customers?.name ?? "Customer"}, {r.invoices.number}
+              </Link>
+            }
+            secondary={`${r.channel === "whatsapp" ? "WhatsApp" : "Email"} · ${r.error ?? "the message didn't go out"}`}
+            amount={null}
+          />
+        ))}
+      </Card>
+    </section>
+  );
+}
+
 const MESSAGE_NAME: Record<string, string> = {
   invoice: "Send the bill",
   reminder: "Reminder",
@@ -82,7 +123,11 @@ export async function RemindersToSend() {
   }
 
   return (
-    <section aria-label="Reminders to send" className="flex flex-col gap-3">
+    <section
+      id="reminders-to-send"
+      aria-label="Reminders to send"
+      className="flex scroll-mt-20 flex-col gap-3"
+    >
       <h2 className="font-display text-xl">Reminders to send</h2>
       <p className="text-sm text-muted">
         These are due. Send each one yourself (or ask Cowork to), then mark it as sent.

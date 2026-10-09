@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { AnalyticalListPage, panelHref } from "@/components/analytical-list-page";
 import { InOutBars, ShareBars } from "@/components/charts";
 import { FilterBar, FilterField, filterInput } from "@/components/filter-bar";
+import { SavedViews } from "@/components/saved-views";
 import { Card, EmptyState, Money } from "@/components/ui";
 import { formatRupiah } from "@/lib/money";
 import {
@@ -8,20 +11,23 @@ import {
   SORT_COLUMN,
   STATUS_WORDS,
   activeChips,
+  isUuid,
   moneyHref,
   moneyListArgs,
   monthRange,
   readMoneyFilters,
   viewQuery,
 } from "@/lib/money-filters";
-import { redirect } from "next/navigation";
-import { SavedViews } from "@/components/saved-views";
 import { createClient } from "@/lib/supabase/server";
+import { transactionView } from "./[id]/transaction";
 import { AddMoneyButton, ImportReminder } from "./import-prompt";
 import { NeedsLabelInbox } from "./inbox";
 import { TransactionsTable } from "./transactions-table";
 
 export const metadata = { title: "Money in & out · Cashflow" };
+
+// The analytical list page (P8-T7): filters → totals → charts → table, every total and bar a
+// filter, and a row opens in the side panel (?open=<id>) so the list keeps its place.
 
 const monthShort = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", month: "short" });
 const monthLong = new Intl.DateTimeFormat("en-GB", {
@@ -65,8 +71,9 @@ export default async function MoneyPage({ searchParams }: PageProps<"/money">) {
   const f = readMoneyFilters(params);
   const args = moneyListArgs(f);
   const [column, ascending] = SORT_COLUMN[f.sort];
+  const openId = typeof params.open === "string" && isUuid(params.open) ? params.open : null;
 
-  const [list, summary, categories, accounts] = await Promise.all([
+  const [list, summary, categories, accounts, opened] = await Promise.all([
     supabase
       .rpc("money_list", args)
       // amount::text keeps rupiah exact: JSON numbers lose precision above 2^53
@@ -79,6 +86,8 @@ export default async function MoneyPage({ searchParams }: PageProps<"/money">) {
     supabase.rpc("money_list_summary", args),
     supabase.from("categories").select("id, name, type").order("name"),
     supabase.from("bank_accounts").select("id, bank_name, account_last4").order("bank_name"),
+    // the row open in the side panel (none, or one this person can't see: no panel)
+    openId ? transactionView(openId, "panel") : null,
   ]);
   // never show totals or rows worked out from a failed read
   const failed = [list, summary, categories, accounts].find((r) => r.error);
@@ -97,23 +106,11 @@ export default async function MoneyPage({ searchParams }: PageProps<"/money">) {
     ),
   };
   const chips = activeChips(f, names, formatRupiah);
+  // the list's own address, page kept: what closing the panel goes back to
+  const listHref = moneyHref(f, { page: f.page });
 
-  return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-3xl md:text-4xl">Money in &amp; out</h1>
-        <div className="flex flex-wrap items-center gap-4">
-          <Link href="/money/regular-costs" className="text-sm underline underline-offset-4">
-            Regular costs
-          </Link>
-          {canImport ? <AddMoneyButton /> : null}
-        </div>
-      </div>
-
-      {canImport ? <ImportReminder /> : null}
-
-      <NeedsLabelInbox />
-
+  const filters = (
+    <>
       <FilterBar
         action="/money"
         chips={chips}
@@ -208,126 +205,157 @@ export default async function MoneyPage({ searchParams }: PageProps<"/money">) {
         </FilterField>
       </FilterBar>
       <SavedViews list="money" base="/money" query={viewQuery(f)} />
+    </>
+  );
 
-      {total === 0 ? (
-        <EmptyState title="Nothing to show">
-          {chips.length
-            ? "No transactions match these filters. Remove one of them, or clear them all."
-            : "Once the bank is connected or a statement is imported, every transfer shows up here."}
-        </EmptyState>
-      ) : (
-        <>
-          {/* the numbers behind what's listed below — each one narrows the list to itself */}
-          <section
-            aria-label="Totals"
-            className="grid grid-cols-2 gap-3 lg:grid-cols-4 [&>*]:min-w-0"
-          >
-            <Card className="flex flex-col gap-0.5 p-4">
-              <span className="text-xs text-muted">Transactions</span>
-              <span className="text-lg tabular-nums lg:text-xl">
-                {total.toLocaleString("id-ID")}
-              </span>
-            </Card>
-            <Link
-              href={moneyHref(f, { dir: "in" })}
-              className="rounded-xl transition-colors hover:bg-ground"
-            >
-              <Card className="flex h-full flex-col gap-0.5 p-4">
-                <span className="text-xs text-muted">Came in</span>
-                <Money amount={cameIn} direction="in" className="text-lg lg:text-xl" />
-              </Card>
-            </Link>
-            <Link
-              href={moneyHref(f, { dir: "out" })}
-              className="rounded-xl transition-colors hover:bg-ground"
-            >
-              <Card className="flex h-full flex-col gap-0.5 p-4">
-                <span className="text-xs text-muted">Went out</span>
-                <Money amount={wentOut} direction="out" className="text-lg lg:text-xl" />
-              </Card>
-            </Link>
-            <Card className="flex flex-col gap-0.5 p-4">
-              <span className="text-xs text-muted">Difference</span>
-              <Money
-                amount={cameIn - wentOut}
-                direction={cameIn >= wentOut ? "in" : "out"}
-                className="text-lg lg:text-xl"
-              />
-            </Card>
-          </section>
-          <p className="-mt-2 text-xs text-muted">
-            Money moved between your own accounts, and hand entries cancelled as mistakes, are
-            listed but left out of these totals.
-          </p>
-
-          <section aria-label="Charts" className="grid gap-3 md:grid-cols-2">
-            <Card className="p-4">
-              <InOutBars
-                label="In and out by month"
-                periods={s.by_month.map((m) => ({
-                  label: monthShort.format(new Date(`${m.month}T00:00:00Z`)),
-                  longLabel: monthLong.format(new Date(`${m.month}T00:00:00Z`)),
-                  cameIn: BigInt(m.came_in),
-                  wentOut: BigInt(m.went_out),
-                  href: moneyHref(f, monthRange(m.month)),
-                }))}
-              />
-            </Card>
-            <Card className="p-4">
-              <ShareBars
-                label="Biggest categories"
-                items={s.by_category.map((c) => ({
-                  label: c.category,
-                  value: BigInt(c.total),
-                  tone: c.direction,
-                  href: c.category_id
-                    ? moneyHref(f, { category: c.category_id })
-                    : moneyHref(f, { status: "needs_label" }),
-                }))}
-              />
-            </Card>
-          </section>
-
-          <section aria-label="Transactions" className="flex flex-col gap-2">
-            <TransactionsTable
-              rows={rows}
-              filters={f}
-              total={total}
-              net={(cameIn - wentOut).toString()}
-              toolbar={
-                <p className="tabular-nums">
-                  {total.toLocaleString("id-ID")} {total === 1 ? "transaction" : "transactions"}
-                  {lastPage > 1 ? ` · page ${f.page} of ${lastPage}` : ""}
-                </p>
-              }
-            />
-            {lastPage > 1 ? (
-              <nav className="flex items-center justify-between text-sm" aria-label="Pages">
-                {f.page > 1 ? (
-                  <Link
-                    href={moneyHref(f, { page: f.page - 1 })}
-                    className="underline underline-offset-4"
-                  >
-                    ← Previous
-                  </Link>
-                ) : (
-                  <span />
-                )}
-                {f.page < lastPage ? (
-                  <Link
-                    href={moneyHref(f, { page: f.page + 1 })}
-                    className="underline underline-offset-4"
-                  >
-                    Next →
-                  </Link>
-                ) : (
-                  <span />
-                )}
-              </nav>
-            ) : null}
-          </section>
-        </>
-      )}
+  // the numbers behind what's listed below — each one narrows the list to itself
+  const totals = (
+    <div className="flex flex-col gap-2">
+      <section aria-label="Totals" className="grid grid-cols-2 gap-3 lg:grid-cols-4 [&>*]:min-w-0">
+        <Card className="flex flex-col gap-0.5 p-4">
+          <span className="text-xs text-muted">Transactions</span>
+          <span className="text-lg tabular-nums lg:text-xl">{total.toLocaleString("id-ID")}</span>
+        </Card>
+        <Link
+          href={moneyHref(f, { dir: "in" })}
+          className="rounded-xl transition-colors hover:bg-ground"
+        >
+          <Card className="flex h-full flex-col gap-0.5 p-4">
+            <span className="text-xs text-muted">Came in</span>
+            <Money amount={cameIn} direction="in" className="text-lg lg:text-xl" />
+          </Card>
+        </Link>
+        <Link
+          href={moneyHref(f, { dir: "out" })}
+          className="rounded-xl transition-colors hover:bg-ground"
+        >
+          <Card className="flex h-full flex-col gap-0.5 p-4">
+            <span className="text-xs text-muted">Went out</span>
+            <Money amount={wentOut} direction="out" className="text-lg lg:text-xl" />
+          </Card>
+        </Link>
+        <Card className="flex flex-col gap-0.5 p-4">
+          <span className="text-xs text-muted">Difference</span>
+          <Money
+            amount={cameIn - wentOut}
+            direction={cameIn >= wentOut ? "in" : "out"}
+            className="text-lg lg:text-xl"
+          />
+        </Card>
+      </section>
+      <p className="text-xs text-muted">
+        Money moved between your own accounts, and hand entries cancelled as mistakes, are listed
+        but left out of these totals.
+      </p>
     </div>
+  );
+
+  const charts = [
+    <InOutBars
+      key="months"
+      label="In and out by month"
+      periods={s.by_month.map((m) => ({
+        label: monthShort.format(new Date(`${m.month}T00:00:00Z`)),
+        longLabel: monthLong.format(new Date(`${m.month}T00:00:00Z`)),
+        cameIn: BigInt(m.came_in),
+        wentOut: BigInt(m.went_out),
+        href: moneyHref(f, monthRange(m.month)),
+      }))}
+    />,
+    <ShareBars
+      key="categories"
+      label="Biggest categories"
+      items={s.by_category.map((c) => ({
+        label: c.category,
+        value: BigInt(c.total),
+        tone: c.direction,
+        href: c.category_id
+          ? moneyHref(f, { category: c.category_id })
+          : moneyHref(f, { status: "needs_label" }),
+      }))}
+    />,
+  ];
+
+  const table = (
+    <>
+      <TransactionsTable
+        rows={rows}
+        filters={f}
+        listHref={listHref}
+        openId={opened ? openId : null}
+        total={total}
+        net={(cameIn - wentOut).toString()}
+        toolbar={
+          <p className="tabular-nums">
+            {total.toLocaleString("id-ID")} {total === 1 ? "transaction" : "transactions"}
+            {lastPage > 1 ? ` · page ${f.page} of ${lastPage}` : ""}
+          </p>
+        }
+      />
+      {lastPage > 1 ? (
+        <nav className="flex items-center justify-between text-sm" aria-label="Pages">
+          {f.page > 1 ? (
+            <Link
+              href={moneyHref(f, { page: f.page - 1 })}
+              className="underline underline-offset-4"
+            >
+              ← Previous
+            </Link>
+          ) : (
+            <span />
+          )}
+          {f.page < lastPage ? (
+            <Link
+              href={moneyHref(f, { page: f.page + 1 })}
+              className="underline underline-offset-4"
+            >
+              Next →
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
+      ) : null}
+    </>
+  );
+
+  return (
+    <AnalyticalListPage
+      title="Money in & out"
+      tableLabel="Transactions"
+      actions={
+        <>
+          <Link href="/money/regular-costs" className="text-sm underline underline-offset-4">
+            Regular costs
+          </Link>
+          {canImport ? <AddMoneyButton /> : null}
+        </>
+      }
+      notices={
+        <>
+          {canImport ? <ImportReminder /> : null}
+          <NeedsLabelInbox />
+        </>
+      }
+      filters={filters}
+      totals={total === 0 ? null : totals}
+      charts={total === 0 ? [] : charts}
+      table={
+        total === 0 ? (
+          <EmptyState title="Nothing to show">
+            {chips.length
+              ? "No transactions match these filters. Remove one of them, or clear them all."
+              : "Once the bank is connected or a statement is imported, every transfer shows up here."}
+          </EmptyState>
+        ) : (
+          table
+        )
+      }
+      panel={
+        opened
+          ? { title: opened.title, closeHref: panelHref(listHref, null), content: opened.view }
+          : null
+      }
+    />
   );
 }

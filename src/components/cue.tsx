@@ -18,7 +18,8 @@ const STATUS = {
 
 export type CueProps = {
   label: string;
-  value: bigint | number;
+  /** null = not enough data yet: a dash, never 0 */
+  value: bigint | number | null;
   /** "rupiah" is written as money; anything else follows the number ("customers", "months"). */
   unit: string;
   /** The list that produced this number, filtered to it. */
@@ -42,11 +43,13 @@ const trendWords = (t: Trend) =>
 
 export function Cue({ label, value, unit, href, trend, status, wide, caption, spark }: CueProps) {
   const shown =
-    unit === "rupiah"
-      ? (wide ? formatRupiah : formatRupiahShort)(BigInt(value))
-      : `${value.toLocaleString("id-ID")}`;
+    value === null
+      ? "—"
+      : unit === "rupiah"
+        ? (wide ? formatRupiah : formatRupiahShort)(BigInt(value))
+        : `${value.toLocaleString("id-ID")}`;
   const said = [
-    `${label}: ${unit === "rupiah" ? formatRupiah(BigInt(value)) : `${shown} ${unit}`}`,
+    `${label}: ${value === null ? "not enough data yet" : unit === "rupiah" ? formatRupiah(BigInt(value)) : `${shown} ${unit}`}`,
     trend ? `${trendWords(trend)} ${trend.against}` : null,
     status ? STATUS[status].words : null,
     caption,
@@ -77,7 +80,7 @@ export function Cue({ label, value, unit, href, trend, status, wide, caption, sp
           className={`truncate font-semibold tracking-tight tabular-nums ${wide ? "text-2xl md:text-3xl" : "text-2xl"}`}
         >
           {shown}
-          {unit === "rupiah" ? null : (
+          {unit === "rupiah" || value === null ? null : (
             <span className="ml-1.5 text-sm font-normal text-muted">{unit}</span>
           )}
         </span>

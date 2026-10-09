@@ -16,6 +16,12 @@ test("a transaction shows its key facts first, and the jump nav reaches each sec
     .first()
     .getByRole("link")
     .click();
+  // the list opens it in the side panel; "Open as a page" gives it the whole screen
+  await expect(page).toHaveURL(/[?&]open=[0-9a-f-]{36}/);
+  await page
+    .locator("aside[aria-labelledby]")
+    .getByRole("link", { name: "Open as a page" })
+    .click();
   await expect(page).toHaveURL(/\/money\/[0-9a-f-]{36}$/);
 
   const facts = page.locator("header dl");

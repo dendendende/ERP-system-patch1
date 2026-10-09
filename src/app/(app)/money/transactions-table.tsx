@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { panelHref } from "@/components/analytical-list-page";
 import { type Column, DataTable } from "@/components/data-table";
 import { Money, StatusPill } from "@/components/ui";
 import { type MoneyFilters, moneyHref } from "@/lib/money-filters";
@@ -36,12 +37,18 @@ const shortDay = new Intl.DateTimeFormat("en-GB", {
 export function TransactionsTable({
   rows,
   filters,
+  listHref,
+  openId,
   toolbar,
   total,
   net,
 }: {
   rows: TransactionRow[];
   filters: MoneyFilters;
+  /** This list's address: a row opens beside it, in the side panel. */
+  listHref: string;
+  /** The row open in the side panel. */
+  openId: string | null;
   toolbar: ReactNode;
   /** How many match, across all pages. */
   total: number;
@@ -71,8 +78,10 @@ export function TransactionsTable({
                 By hand
               </span>
             ) : null}
+            {/* opens in the side panel; the list stays where it was scrolled to */}
             <Link
-              href={`/money/${t.id}`}
+              href={panelHref(listHref, t.id)}
+              scroll={false}
               title={details ? `${t.description} · ${details}` : t.description}
               className="font-medium underline-offset-4 hover:underline"
             >
@@ -124,6 +133,7 @@ export function TransactionsTable({
       rows={rows}
       rowKey={(t) => t.id}
       columns={columns}
+      activeKey={openId ?? undefined}
       sort={{ key, dir }}
       sortHref={(s) => moneyHref(filters, { sort: `${s.key}_${s.dir}` as MoneyFilters["sort"] })}
       csvHref={moneyHref({ ...filters, page: 1 }, {}, "/money/export")}

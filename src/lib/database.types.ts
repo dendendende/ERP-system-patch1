@@ -434,6 +434,32 @@ export type Database = {
         }
         Relationships: []
       }
+      home_layouts: {
+        Row: {
+          cues: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cues: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          cues?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_layouts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           amount_due: number

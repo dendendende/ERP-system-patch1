@@ -41,7 +41,7 @@ type Params = Record<string, string | string[] | undefined>;
 
 const one = (v: string | string[] | undefined) => ((Array.isArray(v) ? v[0] : v) ?? "").trim();
 const isDay = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
-const isUuid = (v: string) =>
+export const isUuid = (v: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 /** "1.500.000" or "1500000" → "1500000"; anything else → "". */
 const rupiah = (v: string) => {
