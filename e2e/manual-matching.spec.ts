@@ -1,13 +1,13 @@
 import { expect, type Page, test } from "@playwright/test";
 import { signIn } from "./auth";
+import { openCustomer } from "./open";
 
 const CUSTOMER = "Toko Berkah";
 const amount = () => `3.${String(100 + Math.floor(Math.random() * 800))}.000`;
 
 /** Writes a bill on the customer page; returns its card and number. */
 async function writeBill(page: Page, rupiah: string) {
-  await page.goto("/customers");
-  await page.getByRole("link", { name: CUSTOMER }).click();
+  await openCustomer(page, CUSTOMER);
   await page.getByLabel("Amount (Rp)").fill(rupiah);
   await page.getByRole("button", { name: "Write bill" }).click();
   await expect(page.getByText("Bill written.")).toBeVisible();
@@ -67,8 +67,7 @@ test("an operator says which bill a transfer paid, but can't mark one paid", asy
   await expect(page.getByText(`of this transfer paid ${number}`)).toBeVisible();
 
   // the bill now shows part of it paid
-  await page.goto("/customers");
-  await page.getByRole("link", { name: CUSTOMER }).click();
+  await openCustomer(page, CUSTOMER);
   await expect(billCard(page, number).getByText("Partly paid")).toBeVisible();
   await expect(billCard(page, number).getByText("Rp 50.000")).toBeVisible();
 

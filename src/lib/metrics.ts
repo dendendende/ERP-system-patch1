@@ -92,6 +92,12 @@ export const cashPosition = (now: Summary, monthAgo: Summary): Metric<bigint> =>
 const months = (s: Summary) =>
   s.recurring_spending > 0n ? ratio1(s.cash_in_bank, s.recurring_spending) : null;
 
+/** The 3 full months before today's month, as a from/to filter: what "usual" means everywhere. */
+export function lastThreeMonths(today: string) {
+  const thisMonth = `${today.slice(0, 7)}-01`;
+  return `from=${shiftMonth(thisMonth, -3)}&to=${shiftDay(thisMonth, -1)}`;
+}
+
 /**
  * Cash runway (months). Opens the regular costs it divides by: money out, marked regular, in the
  * 3 full months before today's month.
@@ -102,15 +108,12 @@ export function runway(
   limits: Limit[],
   today: string,
 ): Metric<number> {
-  const thisMonth = `${today.slice(0, 7)}-01`;
-  const from = shiftMonth(thisMonth, -3);
-  const to = shiftDay(thisMonth, -1);
   return metric(
     months(now),
     months(monthAgo),
     "up",
     limits.find((l) => l.signal === "runway"),
-    `/money?dir=out&status=recurring&from=${from}&to=${to}`,
+    `/money?dir=out&status=recurring&${lastThreeMonths(today)}`,
   );
 }
 
@@ -248,13 +251,14 @@ export const AGING_BUCKETS = [
 ] as const;
 
 const total = (xs: bigint[]) => xs.reduce((a, b) => a + b, 0n);
-const LATE = "/customers?show=late";
+const LATE = "/customers/bills?status=late";
+const OWED = "/customers/bills?status=waiting";
 /** a share in %, one decimal; null of nothing */
 const share = (part: bigint, whole: bigint) => (whole > 0n ? ratio1(part * 100n, whole) : null);
 
 /** Total still owed. Its trend has no colour: more owed can be more sales, or slower payers. */
 export function outstanding(now: Receivables, monthAgo: Receivables): Metric<bigint> {
-  const m = metric(total(now.aging), total(monthAgo.aging), "down", undefined, "/customers");
+  const m = metric(total(now.aging), total(monthAgo.aging), "down", undefined, OWED);
   return { ...m, trend: m.trend && { ...m.trend, good: null } };
 }
 
@@ -265,7 +269,7 @@ export function aging(now: Receivables) {
     label,
     amount: now.aging[i],
     share: share(now.aging[i], all),
-    href: i === 0 ? "/customers" : LATE,
+    href: `/customers/bills?bucket=${i}`,
   }));
 }
 
@@ -298,7 +302,7 @@ export const dso = (now: Receivables, monthAgo: Receivables, limits: Limit[]) =>
     days(monthAgo),
     "down",
     limits.find((l) => l.signal === "dso"),
-    "/customers",
+    OWED,
   );
 
 /**

@@ -1390,11 +1390,58 @@ export type Database = {
       }
       apply_rules_to_unlabelled: { Args: never; Returns: number }
       bank_seen_since: { Args: { p_moment: string }; Returns: boolean }
+      bill_list: {
+        Args: {
+          p_bucket?: number
+          p_customer?: string
+          p_from?: string
+          p_on?: string
+          p_q?: string
+          p_status?: string
+          p_to?: string
+        }
+        Returns: {
+          billed: number
+          bucket: number
+          customer: string
+          customer_id: string
+          days_late: number
+          due_on: string
+          id: string
+          issued_on: string
+          number: string
+          owed: number
+          paid: number
+          status: string
+        }[]
+      }
+      bill_list_summary: {
+        Args: {
+          p_bucket?: number
+          p_customer?: string
+          p_from?: string
+          p_on?: string
+          p_q?: string
+          p_status?: string
+          p_to?: string
+        }
+        Returns: Json
+      }
       came_in_went_out: {
         Args: { p_from: string; p_to: string }
         Returns: {
           came_in: number
           went_out: number
+        }[]
+      }
+      cashflow_by_month: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          category: string
+          category_id: string
+          direction: string
+          month: string
+          total: number
         }[]
       }
       check_balances: {
@@ -1481,6 +1528,16 @@ export type Database = {
           billing_email: string
           customer_id: string
           whatsapp_number: string
+        }[]
+      }
+      customer_statement: {
+        Args: { p_customer: string; p_from: string; p_to: string }
+        Returns: {
+          amount: number
+          day: string
+          invoice_id: string
+          kind: string
+          number: string
         }[]
       }
       enable_audit: { Args: { target: unknown }; Returns: undefined }
@@ -1693,6 +1750,15 @@ export type Database = {
         Returns: boolean
       }
       refresh_invoice: { Args: { p_invoice_id: string }; Returns: undefined }
+      reminder_effectiveness: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          average_days: number
+          kind: string
+          paid_within_7: number
+          sent: number
+        }[]
+      }
       reminder_time: {
         Args: { p_due_on: string; p_offset_days: number }
         Returns: string

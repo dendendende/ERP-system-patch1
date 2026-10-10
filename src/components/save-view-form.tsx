@@ -9,10 +9,17 @@ export function SaveViewForm({
   list,
   query,
   isOwner,
+  summary = "+ Save this view",
+  placeholder = "Needs a label",
+  roleDefaults = true,
 }: {
   list: string;
   query: string;
   isOwner: boolean;
+  summary?: string;
+  placeholder?: string;
+  /** Offer "also the starting view for…" (the owner, on lists). */
+  roleDefaults?: boolean;
 }) {
   const [state, action, pending] = useFormAction<SaveViewState>(saveView, {});
   const details = useRef<HTMLDetailsElement>(null);
@@ -23,7 +30,7 @@ export function SaveViewForm({
   return (
     <details ref={details} className="relative">
       <summary className="cursor-pointer list-none rounded-full border border-dashed border-line px-2.5 py-0.5 text-muted transition-colors hover:border-ink/40 hover:text-ink">
-        + Save this view
+        {summary}
       </summary>
       <form
         onSubmit={action}
@@ -37,11 +44,11 @@ export function SaveViewForm({
             name="name"
             required
             maxLength={60}
-            placeholder="Needs a label"
+            placeholder={placeholder}
             className="h-9 rounded-lg border border-line px-2.5 text-sm text-ink"
           />
         </label>
-        {isOwner ? (
+        {isOwner && roleDefaults ? (
           <label className="flex flex-col gap-1 text-xs font-medium text-muted">
             Also the starting view for
             <select

@@ -63,7 +63,7 @@ test("an operator adds a customer with a phone number typed the local way", asyn
     await signIn(page, "e2e-operator@example.test");
     await page.goto("/customers");
     await page.getByText("Add a customer").click();
-    await page.getByLabel("Name").fill(name);
+    await page.locator("details", { hasText: "Add a customer" }).getByLabel("Name").fill(name);
     await page.getByRole("button", { name: "Add and set up what they pay" }).click();
     await expect(page.getByText("Add a WhatsApp number or an email")).toBeVisible();
 

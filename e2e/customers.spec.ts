@@ -7,10 +7,10 @@ test("the customer list filters by how each customer is doing", async ({ page },
   await page.goto("/customers");
 
   const list = page.getByRole("region", { name: "Customers" });
-  const names = list.locator(".truncate.font-medium");
+  const names = list.locator("tbody tr[data-row]").getByRole("link");
   const tab = (name: string) =>
     page.getByRole("navigation", { name: "Show" }).getByRole("link", { name, exact: true });
-  const search = () => page.getByRole("button", { name: "Search" }).click();
+  const search = () => page.getByRole("button", { name: "Apply" }).click();
   // a tab applies as soon as it is clicked — no button to press
   const pick = async (name: string) => {
     await tab(name).click();
@@ -28,11 +28,14 @@ test("the customer list filters by how each customer is doing", async ({ page },
     ["Ended", "Ended"],
   ] as const) {
     await pick(filter);
-    const rows = list.locator("div.flex.items-center");
+    const rows = list.locator("tbody tr[data-row]");
     for (const row of await rows.all()) {
       if (label === "Active") {
         // "Active" includes those renewing soon or late; all are ongoing, none ended
         await expect(row.getByText("Ended", { exact: true })).toHaveCount(0);
+      } else if (label === "Renewing soon") {
+        // a late customer renewing soon is still labelled "Late" (late wins)
+        await expect(row.getByText(/^(Renewing soon|Late)$/)).toHaveCount(1);
       } else {
         await expect(row.getByText(label, { exact: true })).toHaveCount(1);
       }

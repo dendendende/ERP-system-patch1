@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { signIn } from "./auth";
+import { openCustomer } from "./open";
 
 /** The customer whose subscription the other tests don't depend on. */
 const CUSTOMER = "Toko Berkah";
@@ -7,8 +8,7 @@ const CUSTOMER = "Toko Berkah";
 test("the owner changes a subscription; an operator can't", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "phone", "desktop covers the flow");
   await signIn(page, "e2e-owner@example.test");
-  await page.goto("/customers");
-  await page.getByRole("link", { name: CUSTOMER }).click();
+  await openCustomer(page, CUSTOMER);
 
   const section = page.getByRole("region", { name: "Subscription" });
   await section.locator("summary").first().click();
@@ -40,8 +40,7 @@ test("the owner changes a subscription; an operator can't", async ({ page }, tes
 test("an operator sees the subscription but cannot change it", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "phone", "desktop covers the flow");
   await signIn(page, "e2e-operator@example.test");
-  await page.goto("/customers");
-  await page.getByRole("link", { name: CUSTOMER }).click();
+  await openCustomer(page, CUSTOMER);
 
   const section = page.getByRole("region", { name: "Subscription" });
   await expect(section).toBeVisible();

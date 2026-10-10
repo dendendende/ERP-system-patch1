@@ -3,6 +3,7 @@ import { GaugeBar, ScoreRing, Sparkline } from "@/components/charts";
 import { Card, EmptyState, StatusPill, type Tone } from "@/components/ui";
 import { type Direction, healthGauge } from "@/lib/health-gauge";
 import { HEALTH_RANK, HEALTH_TONE, type HealthStatus } from "@/lib/health-status";
+import { lastThreeMonths } from "@/lib/metrics";
 import { formatRupiahShort } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 
@@ -15,7 +16,8 @@ type Check = {
   value: (v: number) => string;
   safe: (healthy: number) => string;
   percent: boolean;
-  next?: { href: string; label: string };
+  /** The list behind the number (P8-T9): what it was worked out from, filtered to it. */
+  list: (c: { checkedOn: string; topCustomer: string | null }) => { href: string; label: string };
 };
 
 const rupiah = (v: number) =>
@@ -30,6 +32,10 @@ const CHECKS: Record<string, Check> = {
     value: (v) => `about ${v} months`,
     safe: (h) => `more than ${h} months`,
     percent: false,
+    list: ({ checkedOn }) => ({
+      href: `/money?dir=out&status=recurring&${lastThreeMonths(checkedOn)}`,
+      label: "See the regular costs it counts",
+    }),
   },
   net_cashflow: {
     question: "Is more coming in than going out?",
@@ -38,7 +44,10 @@ const CHECKS: Record<string, Check> = {
     safe: (h) =>
       h === 0 ? "more in than out" : `more than ${formatRupiahShort(BigInt(h))} a month`,
     percent: false,
-    next: { href: "/money", label: "See money in & out" },
+    list: ({ checkedOn }) => ({
+      href: `/money?${lastThreeMonths(checkedOn)}`,
+      label: "See the last 3 months' money in & out",
+    }),
   },
   late_share: {
     question: "Are customers paying on time?",
@@ -46,7 +55,10 @@ const CHECKS: Record<string, Check> = {
     value: (v) => `${pct(v)} is 30+ days late`,
     safe: (h) => `under ${h}% late`,
     percent: true,
-    next: { href: "/customers?show=late", label: "See who is late" },
+    list: () => ({
+      href: "/customers/bills?status=late_30",
+      label: "See the bills more than 30 days late",
+    }),
   },
   renewal_rate: {
     question: "Do customers keep renewing?",
@@ -54,7 +66,7 @@ const CHECKS: Record<string, Check> = {
     value: (v) => `${pct(v)} renewed`,
     safe: (h) => `more than ${h}% renewed`,
     percent: true,
-    next: { href: "/customers?show=ended", label: "See who stopped" },
+    list: () => ({ href: "/customers?show=ended", label: "See who stopped" }),
   },
   top_customer_share: {
     question: "Do you rely too much on one customer?",
@@ -62,7 +74,10 @@ const CHECKS: Record<string, Check> = {
     value: (v) => `${pct(v)} from one customer`,
     safe: (h) => `under ${h}% from any one customer`,
     percent: true,
-    next: { href: "/customers", label: "See customers" },
+    list: ({ topCustomer }) =>
+      topCustomer
+        ? { href: `/customers?open=${topCustomer}`, label: "See the biggest customer" }
+        : { href: "/customers", label: "See customers" },
   },
 };
 
@@ -96,6 +111,25 @@ export default async function HealthPage() {
   if (error) throw new Error(`Business health didn't load: ${error.message}`);
   const latest = (snapshots ?? []).filter((s) => s.taken_on === snapshots?.[0]?.taken_on);
   const limit = new Map((limits ?? []).map((l) => [l.signal, l]));
+  // the lists behind the checks are as of the day they were checked, not today
+  const checkedOn = latest[0]?.taken_on ?? null;
+  // the biggest customer that day, for "relying on one customer" to open (the check's own ranking)
+  const { data: earned } = checkedOn
+    ? await supabase.rpc("revenue_by_customer", { p_on: checkedOn }).select("customer_id").limit(1)
+    : { data: null };
+  const topCustomer = earned?.[0]?.customer_id ?? null;
+  /** The check's value on the latest day kept at least a month before the latest check. */
+  const monthAgo = (signal: string) => {
+    const latestDay = snapshots?.[0]?.taken_on;
+    if (!latestDay) return null;
+    const before = new Date(`${latestDay}T00:00:00Z`);
+    before.setUTCDate(before.getUTCDate() - 30);
+    const then = (snapshots ?? []).find(
+      (x) =>
+        x.signal === signal && x.value !== null && x.taken_on <= before.toISOString().slice(0, 10),
+    );
+    return then ? Number(then.value) : null;
+  };
   const history = (signal: string) =>
     (snapshots ?? [])
       .filter((s) => s.signal === signal && s.value !== null)
@@ -170,6 +204,8 @@ export default async function HealthPage() {
                 check.percent,
               );
               const trend = history(s.signal);
+              const then = monthAgo(s.signal);
+              const list = check.list({ checkedOn: s.taken_on, topCustomer });
               return (
                 <Card
                   key={s.signal}
@@ -199,7 +235,10 @@ export default async function HealthPage() {
                     </>
                   )}
                   <div className="mt-auto flex items-end justify-between gap-3 border-t border-line pt-3 text-xs text-muted">
-                    <span>Safe: {check.safe(healthy)}</span>
+                    <span>
+                      Safe: {check.safe(healthy)}
+                      {then === null ? null : <> · a month ago: {check.short(then)}</>}
+                    </span>
                     {trend.length > 1 ? (
                       <span className="flex items-center gap-2">
                         last {trend.length} days
@@ -207,14 +246,13 @@ export default async function HealthPage() {
                       </span>
                     ) : null}
                   </div>
-                  {check.next && s.status !== "healthy" ? (
-                    <Link
-                      href={check.next.href}
-                      className="self-start text-sm font-medium text-brand underline-offset-4 hover:underline"
-                    >
-                      {check.next.label} →
-                    </Link>
-                  ) : null}
+                  {/* every check opens the list it was worked out from */}
+                  <Link
+                    href={list.href}
+                    className="self-start text-sm font-medium text-brand underline-offset-4 hover:underline"
+                  >
+                    {list.label} →
+                  </Link>
                 </Card>
               );
             })}

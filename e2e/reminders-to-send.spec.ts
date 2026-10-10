@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { signIn } from "./auth";
+import { openCustomer } from "./open";
 
 const CUSTOMER = "PT Karya Digital"; // has an email address
 
@@ -9,8 +10,7 @@ test("a due reminder waits on Home until someone sends it by hand", async ({ pag
   await signIn(page, "e2e-operator@example.test");
 
   // a new bill: its own message is due right away
-  await page.goto("/customers");
-  await page.getByRole("link", { name: CUSTOMER }).click();
+  await openCustomer(page, CUSTOMER);
   await page.getByLabel("Amount (Rp)").fill(amount);
   await page.getByRole("button", { name: "Write bill" }).click();
   await expect(page.getByText("Bill written.")).toBeVisible();
@@ -49,9 +49,8 @@ test("a due reminder waits on Home until someone sends it by hand", async ({ pag
   // sent by hand → off the list, and the customer's timeline says so
   await item.getByRole("button", { name: "Mark as sent" }).click();
   await expect(list.locator("div.border-b").filter({ hasText: number })).toHaveCount(0);
-  await page.goto("/customers");
-  await page.getByRole("link", { name: CUSTOMER }).click();
-  const timeline = page.getByRole("region", { name: "Reminders" });
+  await openCustomer(page, CUSTOMER);
+  const timeline = page.getByRole("region", { name: "What we've sent them" });
   await expect(
     timeline
       .locator("li")

@@ -30,10 +30,8 @@ test("a transaction shows its key facts first, and the jump nav reaches each sec
   }
 
   const nav = page.getByRole("navigation", { name: "Sections" });
-  await expect(nav.getByRole("link", { name: "Details" })).toHaveAttribute(
-    "aria-current",
-    "location",
-  );
+  // the first section is the one being read (money in not matched yet starts with "Match a bill")
+  await expect(nav.getByRole("link").first()).toHaveAttribute("aria-current", "location");
   await nav.getByRole("link", { name: "History" }).click();
   await expect(page).toHaveURL(/#history$/);
   await expect(nav.getByRole("link", { name: "History" })).toHaveAttribute(

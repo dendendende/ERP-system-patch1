@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { Client } from "pg";
 import { signIn } from "./auth";
+import { openCustomer } from "./open";
 
 // P6-T5 "done when": the whole money path in one go, the way the team uses it.
 //   sign in → label a transfer → write a bill → the customer pays it → reminders stop.
@@ -55,7 +56,7 @@ test("sign in → label → bill → payment matched → reminders cancelled", a
   const customer = `E2E Flow ${RUN}`;
   await page.goto("/customers");
   await page.getByText("Add a customer").click();
-  await page.getByLabel("Name").fill(customer);
+  await page.locator("details", { hasText: "Add a customer" }).getByLabel("Name").fill(customer);
   await page.getByLabel("Billing email").fill(`flow-${RUN.toLowerCase()}@example.test`);
   await page.getByRole("button", { name: "Add and set up what they pay" }).click();
   await expect(page.getByRole("heading", { name: customer })).toBeVisible();
@@ -74,7 +75,7 @@ test("sign in → label → bill → payment matched → reminders cancelled", a
   const bill = bills.locator(".rounded-xl").filter({ hasText: number });
 
   // the bill's own message is queued for the team to send
-  const reminders = page.getByRole("region", { name: "Reminders" });
+  const reminders = page.getByRole("region", { name: "What we've sent them" });
   await expect(reminders.getByText(`The bill · ${number}`)).toBeVisible();
 
   // 4. the customer pays exactly the asked amount; the bank statement comes in; it's matched
@@ -82,8 +83,7 @@ test("sign in → label → bill → payment matched → reminders cancelled", a
     page,
     `${TODAY},"TRSF E-BANKING CR ${customer.toUpperCase()}",${transfer}\n`,
   );
-  await page.goto("/customers");
-  await page.getByRole("link", { name: customer }).click();
+  await openCustomer(page, customer);
   await expect(bill.getByText("Paid", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("All paid up.")).toBeVisible();
   await expect(reminders.getByText(/matched by the app/)).toBeVisible();

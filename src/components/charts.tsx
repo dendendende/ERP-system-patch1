@@ -456,12 +456,14 @@ export function Donut({
   );
 }
 
-/** The biggest parts of a whole, as horizontal bars with the amount written next to each. */
+/** The biggest parts of a whole, as horizontal bars with the amount written next to each.
+ * "in" / "out" are money that moved (green +, rust −); "neutral" is an amount that just is
+ * (what a customer owes). */
 export function ShareBars({
   items,
   label,
 }: {
-  items: { label: string; value: bigint; tone: "in" | "out"; href: string }[];
+  items: { label: string; value: bigint; tone: "in" | "out" | "neutral"; href: string }[];
   label: string;
 }) {
   const max = items.reduce((m, i) => (i.value > m ? i.value : m), 0n);
@@ -473,20 +475,20 @@ export function ShareBars({
           <li key={`${item.tone}-${item.label}`}>
             <Link
               href={item.href}
-              aria-label={`${item.label}: ${item.tone === "in" ? "came in" : "went out"} ${formatRupiah(item.value)}. Show only these.`}
+              aria-label={`${item.label}: ${item.tone === "in" ? "came in " : item.tone === "out" ? "went out " : ""}${formatRupiah(item.value)}. Show only these.`}
               className="group grid grid-cols-[minmax(0,9rem)_1fr_auto] items-center gap-2 rounded-md px-1 py-1 text-xs transition-colors hover:bg-ground"
             >
               <span className="truncate">{item.label}</span>
               <span className="h-2 overflow-hidden rounded-full bg-line/60">
                 <span
-                  className={`block h-full rounded-full ${item.tone === "in" ? "bg-in" : "bg-problem"}`}
+                  className={`block h-full rounded-full ${item.tone === "in" ? "bg-in" : item.tone === "out" ? "bg-problem" : "bg-brand"}`}
                   style={{ width: `${percent(item.value, max)}%` }}
                 />
               </span>
               <span
-                className={`text-right whitespace-nowrap ${item.tone === "in" ? "text-in" : "text-problem"}`}
+                className={`text-right whitespace-nowrap tabular-nums ${item.tone === "in" ? "text-in" : item.tone === "out" ? "text-problem" : ""}`}
               >
-                {item.tone === "in" ? "+" : "−"}
+                {item.tone === "in" ? "+" : item.tone === "out" ? "−" : ""}
                 {formatRupiahShort(item.value)}
               </span>
             </Link>

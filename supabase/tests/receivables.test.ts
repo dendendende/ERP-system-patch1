@@ -129,6 +129,39 @@ describe("receivables on a fixed dataset (hand-calculated)", () => {
       expect(top.rows[0].number).toBe(
         (await db.query("select number from invoices where id = $1", [b])).rows[0].number,
       );
+
+      // P8-T8a: the bills list adds up to the same aging, bucket by bucket — a cue and the list
+      // it opens always agree
+      const list = (
+        await db.query(
+          "select bill_list_summary('waiting', p_on => '2031-06-30') as s, bill_list_summary('late', p_on => '2031-06-30') as late",
+        )
+      ).rows[0];
+      expect(list.s.owed).toBe(String(41 * M));
+      expect(list.s.aging.map((a: { owed: string }) => BigInt(a.owed))).toEqual(r.aging);
+      expect(list.s.aging.map((a: { count: number }) => a.count)).toEqual([1, 1, 1, 0, 1]);
+      expect(list.late).toMatchObject({ count: 3, past_due: String(29 * M) });
+      // P8-T9: "more than 30 days late" is the health check's late — B (51) and A (91), not F (30)
+      const late30 = await db.query(
+        "select bill_list_summary('late_30', p_on => '2031-06-30') ->> 'owed' as owed",
+      );
+      expect(late30.rows[0].owed).toBe(String(25 * M));
+      // bucket 0 is a filter of its own (not "any"), and B shows what it was billed and paid
+      const notDue = await db.query(
+        "select owed::text from bill_list(p_bucket => 0, p_on => '2031-06-30')",
+      );
+      expect(notDue.rows).toEqual([{ owed: String(12 * M) }]);
+      const bRow = await db.query(
+        "select billed::text, paid::text, owed::text, days_late, bucket from bill_list(p_on => '2031-06-30') where id = $1",
+        [b],
+      );
+      expect(bRow.rows[0]).toEqual({
+        billed: String(20 * M),
+        paid: String(5 * M),
+        owed: String(15 * M),
+        days_late: 51,
+        bucket: 2,
+      });
     });
   });
 

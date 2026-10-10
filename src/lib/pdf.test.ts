@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { textPdf } from "./pdf";
+import { monoWidth, textPdf } from "./pdf";
 
 const asText = (bytes: Uint8Array) => Buffer.from(bytes).toString("latin1");
 
@@ -18,7 +18,7 @@ describe("textPdf", () => {
     const start = Number(/startxref\n(\d+)/.exec(pdf)![1]);
     expect(pdf.slice(start, start + 4)).toBe("xref");
     const offsets = [...pdf.slice(start).matchAll(/^(\d{10}) 00000 n $/gm)].map((m) => Number(m[1]));
-    expect(offsets).toHaveLength(6);
+    expect(offsets).toHaveLength(7); // catalog, page list, 3 fonts, one page and its content
     offsets.forEach((offset, i) => expect(pdf.slice(offset).startsWith(`${i + 1} 0 obj`)).toBe(true));
   });
 
@@ -33,5 +33,31 @@ describe("textPdf", () => {
     expect(pdf).toContain("\\\\ back\\\\slash");
     expect(pdf.match(/Pay to BCA/g)!.length).toBe(6);
     expect(pdf.match(/ Tj ET/g)!.length).toBeGreaterThan(3); // the long line took several lines
+  });
+
+  it("flows onto more pages, and Courier lines are never wrapped", () => {
+    const long = asText(
+      textPdf([
+        { text: "Report", size: 16, bold: true },
+        ...Array.from({ length: 120 }, (_, i) => ({
+          text: `row ${i} `.padEnd(90, "."),
+          mono: true,
+          size: 8,
+        })),
+      ]),
+    );
+    const count = Number(/\/Count (\d+)/.exec(long)![1]);
+    expect(count).toBeGreaterThan(1);
+    expect(long.match(/\/Type \/Page /g)).toHaveLength(count);
+    expect(long.match(/\/F3 8 Tf/g)).toHaveLength(120); // one line each: none wrapped
+    expect(long).toContain("/BaseFont /Courier");
+    // every cross-reference entry still points at its object, across pages
+    const start = Number(/startxref\n(\d+)/.exec(long)![1]);
+    const offsets = [...long.slice(start).matchAll(/^(\d{10}) 00000 n $/gm)].map((m) =>
+      Number(m[1]),
+    );
+    expect(offsets).toHaveLength(5 + 2 * count);
+    offsets.forEach((o, i) => expect(long.slice(o).startsWith(`${i + 1} 0 obj`)).toBe(true));
+    expect(monoWidth(8)).toBe(100);
   });
 });

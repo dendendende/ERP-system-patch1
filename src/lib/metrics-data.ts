@@ -150,7 +150,7 @@ export async function loadReceivableMetrics(supabase: Client, today: string) {
       owed: big(t.owed),
       daysLate: t.days_late,
       lastReminded: t.last_reminded,
-      href: `/customers/${t.customer_id}#bill-${t.invoice_id}`,
+      href: `/customers/bills?status=late&open=${t.invoice_id}`,
     })),
   };
 }

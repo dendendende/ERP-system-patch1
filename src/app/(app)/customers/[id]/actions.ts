@@ -38,14 +38,13 @@ export async function createInvoice(_prev: FormState, form: FormData): Promise<F
     };
   }
 
-  revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/customers", "layout"); // the customer, the bills list and the bill itself
   return { ok: "Bill written.", at: Date.now() };
 }
 
 /** The only parts of a bill anyone may change. A different amount means void and write a new one. */
 export async function updateInvoice(_prev: FormState, form: FormData): Promise<FormState> {
   const id = String(form.get("invoiceId") ?? "");
-  const customerId = String(form.get("customerId") ?? "");
   const dueOn = String(form.get("dueOn") ?? "");
   const notes = String(form.get("notes") ?? "").slice(0, 500);
   if (!isDate(dueOn)) return { error: "Choose a due date." };
@@ -60,13 +59,12 @@ export async function updateInvoice(_prev: FormState, form: FormData): Promise<F
   // row-level security lets the update run but changes nothing when you may not
   if (!data?.length) return { error: "Only the owner or an operator can change a bill." };
 
-  revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/customers", "layout"); // the customer, the bills list and the bill itself
   return { ok: "Saved.", at: Date.now() };
 }
 
 export async function voidInvoice(_prev: FormState, form: FormData): Promise<FormState> {
   const id = String(form.get("invoiceId") ?? "");
-  const customerId = String(form.get("customerId") ?? "");
   const reason = String(form.get("reason") ?? "").trim().slice(0, 300);
   if (!reason) return { error: "Say why this bill is being cancelled." };
 
@@ -82,7 +80,7 @@ export async function voidInvoice(_prev: FormState, form: FormData): Promise<For
     };
   }
 
-  revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/customers", "layout"); // the customer, the bills list and the bill itself
   return { ok: "Bill cancelled.", at: Date.now() };
 }
 
@@ -138,12 +136,11 @@ export async function createSubscription(_prev: FormState, form: FormData): Prom
     };
   }
 
-  revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/customers", "layout"); // the customer, the bills list and the bill itself
   return { ok: "Subscription saved.", at: Date.now() };
 }
 
 export async function updateSubscription(_prev: FormState, form: FormData): Promise<FormState> {
-  const customerId = String(form.get("customerId") ?? "");
   const id = String(form.get("subscriptionId") ?? "");
   const parsed = readSubscription(form);
   if (!parsed.row) return { error: parsed.error };
@@ -159,7 +156,7 @@ export async function updateSubscription(_prev: FormState, form: FormData): Prom
   // row-level security lets the update run but changes nothing when you may not
   if (!data?.length) return { error: "Only the owner can change a subscription." };
 
-  revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/customers", "layout"); // the customer, the bills list and the bill itself
   return { ok: "Saved.", at: Date.now() };
 }
 
@@ -169,7 +166,6 @@ export async function markPaidWithoutTransfer(
   form: FormData,
 ): Promise<FormState> {
   const id = String(form.get("invoiceId") ?? "");
-  const customerId = String(form.get("customerId") ?? "");
   const reason = String(form.get("reason") ?? "")
     .trim()
     .slice(0, 300);
@@ -190,14 +186,13 @@ export async function markPaidWithoutTransfer(
     };
   }
 
-  revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/customers", "layout"); // the customer, the bills list and the bill itself
   return { ok: "Marked paid.", at: Date.now() };
 }
 
 /** Put a reminder for this bill on today's list ("Reminders to send" on Home). */
 export async function sendReminderNow(_prev: FormState, form: FormData): Promise<FormState> {
   const invoiceId = String(form.get("invoiceId") ?? "");
-  const customerId = String(form.get("customerId") ?? "");
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("send_reminder_now", { p_invoice_id: invoiceId });
@@ -217,7 +212,7 @@ export async function sendReminderNow(_prev: FormState, form: FormData): Promise
     };
   }
 
-  revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/customers", "layout"); // the customer, the bills list and the bill itself
   return { ok: "Added to \"Reminders to send\" on Home.", at: Date.now() };
 }
 
@@ -244,6 +239,6 @@ export async function setRemindersPaused(_prev: FormState, form: FormData): Prom
     };
   }
 
-  revalidatePath(`/customers/${customerId}`);
+  revalidatePath("/customers", "layout"); // the customer, the bills list and the bill itself
   return { ok: paused ? "Reminders paused." : "Reminders back on.", at: Date.now() };
 }

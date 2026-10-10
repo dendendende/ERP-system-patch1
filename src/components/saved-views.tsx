@@ -11,7 +11,7 @@ export async function SavedViews({
   base,
   query,
 }: {
-  list: "money";
+  list: "money" | "invoices" | "customers";
   base: string;
   /** The current filters, as a saved view would store them. */
   query: string;

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Button, Card, EmptyState } from "@/components/ui";
 import { jakartaRange } from "@/app/(app)/money/filters";
-import { TABLES, describeAudit, type Names } from "@/lib/audit-describe";
+import { TABLES, describeAudit } from "@/lib/audit-describe";
+import { auditNames } from "@/lib/audit-names";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Change history · Settings · Cashflow" };
@@ -13,26 +14,6 @@ const when = new Intl.DateTimeFormat("en-GB", {
   dateStyle: "medium",
   timeStyle: "short",
 });
-
-// Which column names a row, for the tables whose ids can show up in the log.
-const NAME_COLUMN: Record<string, string> = {
-  users: "name",
-  categories: "name",
-  rules: "pattern",
-  customers: "name",
-  subscriptions: "plan_name",
-  invoices: "number",
-  recurring_expenses: "name",
-  bank_transactions: "description_raw",
-};
-const REFERS_TO: Record<string, string> = {
-  category_id: "categories",
-  customer_id: "customers",
-  invoice_id: "invoices",
-  subscription_id: "subscriptions",
-  bank_transaction_id: "bank_transactions",
-  bank_account_id: "bank_accounts",
-};
 
 const inputClass = "h-10 rounded-lg border border-line bg-surface px-3 text-sm";
 
@@ -68,57 +49,8 @@ export default async function AuditLogPage({ searchParams }: PageProps<"/setting
     supabase.from("users").select("id, name").order("name"),
   ]);
 
-  // Look up a readable name for every id on this page: the records themselves and anything
-  // they point to (category, customer, bill...).
-  const wanted = new Map<string, Set<string>>();
-  const want = (t: string, id: unknown) => {
-    if (typeof id !== "string") return;
-    if (!wanted.has(t)) wanted.set(t, new Set());
-    wanted.get(t)!.add(id);
-  };
-  for (const r of rows ?? []) {
-    if (r.record_id) want(r.table_name, r.record_id);
-    for (const v of [r.old_value, r.new_value]) {
-      if (!v || typeof v !== "object" || Array.isArray(v)) continue;
-      for (const [field, target] of Object.entries(REFERS_TO)) want(target, v[field]);
-    }
-  }
-  const names: Names = new Map((people ?? []).map((p) => [p.id, p.name]));
-  const entryTransaction = new Map<string, string>();
-  await Promise.all([
-    ...[...wanted].map(async ([t, ids]) => {
-      const column = NAME_COLUMN[t];
-      if (!column) return;
-      const { data } = await supabase
-        .from(t as "users")
-        .select(`id, ${column}`)
-        .in("id", [...ids]);
-      for (const row of (data ?? []) as unknown as Record<string, string>[]) {
-        names.set(row.id, row[column]);
-      }
-    }),
-    (async () => {
-      const ids = [...(wanted.get("bank_accounts") ?? [])];
-      if (!ids.length) return;
-      const { data } = await supabase
-        .from("bank_accounts")
-        .select("id, bank_name, account_last4")
-        .in("id", ids);
-      for (const a of data ?? []) names.set(a.id, `${a.bank_name} ••${a.account_last4}`);
-    })(),
-    (async () => {
-      const ids = [...(wanted.get("entries") ?? [])];
-      if (!ids.length) return;
-      const { data } = await supabase
-        .from("entries")
-        .select("id, bank_transaction_id, bank_transactions (description_raw)")
-        .in("id", ids);
-      for (const e of data ?? []) {
-        names.set(e.id, e.bank_transactions.description_raw);
-        entryTransaction.set(e.id, e.bank_transaction_id);
-      }
-    })(),
-  ]);
+  // a readable name for every id on this page: the records and anything they point to
+  const { names, entryTransaction } = await auditNames(supabase, rows ?? []);
 
   const total = count ?? 0;
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));

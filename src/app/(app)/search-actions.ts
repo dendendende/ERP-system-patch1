@@ -61,7 +61,7 @@ export async function searchEverything(typed: string): Promise<FoundGroup[]> {
       items: (bills.data ?? []).map((b) => ({
         label: b.number,
         sub: `${b.customers.name} · ${formatRupiah(BigInt(b.amount_due))} · ${INVOICE_STATUS[b.status]?.label ?? b.status}`,
-        href: `/customers/${b.customer_id}#bill-${b.id}`,
+        href: `/customers/${b.customer_id}/bills/${b.id}`,
       })),
     },
     {

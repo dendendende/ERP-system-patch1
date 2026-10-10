@@ -10,6 +10,7 @@ const ICONS = {
   customers:
     "M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7m10 9v-1.5a3.5 3.5 0 0 0-2.5-3.35M15 4.15a3.5 3.5 0 0 1 0 6.7",
   health: "M3 12h4l3-7 4 14 3-7h4",
+  reports: "M7 3h7l5 5v13H7zM14 3v5h5M10 13h6m-6 4h6",
   settings:
     "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6m7.4-1.6.1-1.4-.1-1.4 2-1.6-2-3.4-2.4 1a7 7 0 0 0-2.4-1.4L14.2 2h-4.4l-.4 2.6A7 7 0 0 0 7 6L4.6 5l-2 3.4 2 1.6-.1 1.4.1 1.4-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2.4 1.4l.4 2.6h4.4l.4-2.6a7 7 0 0 0 2.4-1.4l2.4 1 2-3.4z",
 } as const;
@@ -19,6 +20,7 @@ export const NAV = [
   { href: "/money", label: "Money in & out", short: "Money", icon: "money" },
   { href: "/customers", label: "Customers & billing", short: "Customers", icon: "customers" },
   { href: "/health", label: "Business health", short: "Health", icon: "health" },
+  { href: "/reports", label: "Reports", short: "Reports", icon: "reports" },
   { href: "/settings", label: "Settings", short: "Settings", icon: "settings" },
 ] as const;
 

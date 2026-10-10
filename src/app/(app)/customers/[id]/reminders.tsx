@@ -73,12 +73,21 @@ export async function Reminders({
   customerId,
   paused,
   canAct,
+  invoiceId,
 }: {
   customerId: string;
   paused: boolean;
   canAct: boolean;
+  /** Only this bill's messages and payments (the bill page); pausing stays on the customer. */
+  invoiceId?: string;
 }) {
   const supabase = await createClient();
+  // one customer's, or one bill's (both tables have invoice_id; the client's column types can't
+  // follow a choice between two names, hence the cast)
+  const only = (invoiceId ? ["invoice_id", invoiceId] : ["invoices.customer_id", customerId]) as [
+    "invoice_id",
+    string,
+  ];
   const [reminders, payments] = await Promise.all([
     supabase
       .from("reminders")
@@ -86,7 +95,7 @@ export async function Reminders({
         `id, channel, status, error, scheduled_for, sent_at, amount_shown::text, template_key, sent_by,
          invoices!inner (number, customer_id), reminder_schedule (kind, offset_days)`,
       )
-      .eq("invoices.customer_id", customerId)
+      .eq(...only)
       // a cancelled reminder whose day never came was never going to happen: not worth a line
       .or(`status.neq.cancelled,scheduled_for.lte.${new Date().toISOString()}`)
       .order("scheduled_for", { ascending: false })
@@ -97,12 +106,13 @@ export async function Reminders({
         `id, amount_applied::text, method, reason, created_at,
          invoices!inner (number, customer_id), bank_transactions (occurred_at)`,
       )
-      .eq("invoices.customer_id", customerId)
+      .eq(...only)
       .order("created_at", { ascending: false })
       .limit(50),
   ]);
 
-  const controls = canAct ? <PauseReminders customerId={customerId} paused={paused} /> : null;
+  const controls =
+    canAct && !invoiceId ? <PauseReminders customerId={customerId} paused={paused} /> : null;
   const banner = paused ? (
     <p className="rounded-lg bg-attention-bg px-3 py-2 text-sm text-attention-ink">
       Reminders are paused for this customer. Nothing is sent until they are turned back on.

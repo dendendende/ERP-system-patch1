@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { signIn } from "./auth";
+import { openCustomer } from "./open";
 
 /** The customer with no subscription, so this test never disturbs the billing demo data. */
 const CUSTOMER = "Toko Berkah";
@@ -9,8 +10,7 @@ test("an operator writes a bill, changes it, and cancels it", async ({ page }, t
   const amount = `2.${String(300 + Math.floor(Math.random() * 600))}.000`;
   test.skip(testInfo.project.name === "phone", "desktop covers the flow");
   await signIn(page, "e2e-operator@example.test");
-  await page.goto("/customers");
-  await page.getByRole("link", { name: CUSTOMER }).click();
+  await openCustomer(page, CUSTOMER);
 
   const bills = page.getByRole("region", { name: "Bills" });
 
@@ -56,8 +56,7 @@ test("an operator writes a bill, changes it, and cancels it", async ({ page }, t
 test("a viewer can read the bills but not write one", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === "phone", "desktop covers the flow");
   await signIn(page, "e2e-viewer@example.test");
-  await page.goto("/customers");
-  await page.getByRole("link", { name: CUSTOMER }).click();
+  await openCustomer(page, CUSTOMER);
 
   await expect(page.getByRole("region", { name: "Bills" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Write bill" })).toHaveCount(0);

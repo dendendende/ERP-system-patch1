@@ -1,15 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { signIn } from "./auth";
+import { openCustomer } from "./open";
 
 test("a customer's page shows their bill, what is paid, and the amount to transfer", async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name === "phone", "desktop covers the flow");
   await signIn(page, "e2e-owner@example.test");
-  await page.goto("/customers");
-  const first = page.getByRole("region", { name: "Customers" }).getByRole("link").first();
-  const name = (await first.innerText()).trim();
-  await first.click();
+  const name = await openCustomer(page);
 
   await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
   // the headline is one plain sentence about where they stand
@@ -25,7 +23,7 @@ test("a customer's page shows their bill, what is paid, and the amount to transf
   await expect(bills.getByText("Ask them to transfer exactly").first()).toBeVisible();
 
   await expect(page.getByRole("region", { name: "Subscription" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Reminders" })).toContainText(
+  await expect(page.getByRole("region", { name: "What we've sent them" })).toContainText(
     "What we've sent them",
   );
 });
