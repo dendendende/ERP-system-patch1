@@ -27,6 +27,12 @@ export const JUMPS: Jump[] = [
     words: "overdue owed",
   },
   { label: "Home", href: "/", hint: "Screen", words: "dashboard today" },
+  {
+    label: "Notifications",
+    href: "/notifications",
+    hint: "Screen",
+    words: "alerts mismatch failed new payee",
+  },
   { label: "Money in & out", href: "/money", hint: "Screen", words: "transactions bank" },
   {
     label: "Regular costs",

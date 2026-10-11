@@ -1,9 +1,11 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { arcs, biggest, foldIntoOther, linePoints, percent, sum } from "@/lib/chart-math";
+import { type Vs, VS_WORDS, changeWords } from "@/lib/compare";
 import { along, type Gauge } from "@/lib/health-gauge";
 import type { HealthStatus } from "@/lib/health-status";
 import { formatRupiah, formatRupiahShort } from "@/lib/money";
+import { FilterTabs } from "./ui";
 
 // Small charts (v2) drawn with plain HTML/CSS/SVG: no chart library, no gradients, one axis.
 // Every mark is a link that narrows the list to it ("every number is a door": the click is the
@@ -57,22 +59,59 @@ function Legend({ series }: { series: Series[] }) {
 function Frame({
   label,
   series,
+  vs,
   children,
 }: {
   label: string;
   series?: Series[];
+  /** comparing (P9-T6): what the thin marks stand for, e.g. "a month before" */
+  vs?: string;
   children: ReactNode;
 }) {
   return (
     <figure className="flex flex-col gap-2">
       <figcaption className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
         <span>{label}</span>
-        {/* one series: the title names it; two or more: a legend */}
-        {series && series.length > 1 ? <Legend series={series} /> : null}
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {/* one series: the title names it; two or more: a legend */}
+          {series && series.length > 1 ? <Legend series={series} /> : null}
+          {vs ? <CompareKey vs={vs} /> : null}
+        </span>
       </figcaption>
       {children}
     </figure>
   );
+}
+
+/** What the thin ink mark on each bar means. */
+function CompareKey({ vs }: { vs: string }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span aria-hidden className="h-2.5 w-0.5 rounded-full bg-ink/70" /> {vs}
+    </span>
+  );
+}
+
+/** Where the bar stood before, on a horizontal track (left = 0). */
+function WasMark({ at }: { at: number }) {
+  return (
+    <span
+      aria-hidden
+      className="absolute inset-y-0 w-0.5 -translate-x-1/2 rounded-full bg-ink/70"
+      style={{ left: `${at}%` }}
+    />
+  );
+}
+
+/** "; a month before Rp 1.200.000 (↑ 12%)" — the comparison, for screen readers. */
+const wasSentence = (vs: string | undefined, now: bigint, before: bigint | null | undefined) =>
+  vs && before != null ? ` ${vs}: ${formatRupiah(before)} (${changeWords(now, before)}).` : "";
+
+/** "↑ 12%" under an amount, when comparing. */
+function Change({ vs, now, before }: { vs?: string; now: bigint; before?: bigint | null }) {
+  return vs && before != null ? (
+    <span className="block text-[10px] leading-3 text-muted">{changeWords(now, before)}</span>
+  ) : null;
 }
 
 /** The numbers for the mark being pointed at; kept inside the card at either end. */
@@ -129,32 +168,52 @@ export function BarChart({
   series,
   points,
   label,
+  vs,
 }: {
   series: Series[];
-  points: Point[];
+  /** `before`: each series' value a month / a year earlier, when comparing */
+  points: (Point & { before?: bigint[] | null })[];
   label: string;
+  /** comparing: what `before` is, e.g. "a month before" */
+  vs?: string;
 }) {
-  const max = biggest(points.flatMap((p) => p.values));
+  const max = biggest(points.flatMap((p) => [...p.values, ...(vs ? (p.before ?? []) : [])]));
   return (
-    <Frame label={label} series={series}>
+    <Frame label={label} series={series} vs={vs}>
       <Columns points={points}>
         {(p, i) => (
           <Link
             href={p.href}
-            aria-label={`${p.longLabel}: ${sentence(series, p.values)}. Show only ${p.longLabel}.`}
+            aria-label={`${p.longLabel}: ${sentence(series, p.values)}.${
+              vs && p.before ? ` ${vs}: ${sentence(series, p.before)}.` : ""
+            } Show only ${p.longLabel}.`}
             className="group relative flex h-full flex-col justify-end rounded-md px-0.5 transition-colors hover:bg-ground"
           >
             <Tip at={i} of={points.length}>
               <span className="block font-medium">{p.longLabel}</span>
               <TipRows series={series} values={p.values} />
+              {vs && p.before ? (
+                <>
+                  <span className="mt-1 block text-surface/70">{vs}</span>
+                  <TipRows series={series} values={p.before} />
+                </>
+              ) : null}
             </Tip>
             <span className="flex h-full items-end justify-center gap-0.5 border-b border-line">
               {series.map((s, j) => (
-                <span
-                  key={s.name}
-                  className={`w-1/3 max-w-4 rounded-t ${BG[s.tone]} transition-opacity group-hover:opacity-80`}
-                  style={{ height: `${percent(p.values[j] ?? 0n, max)}%` }}
-                />
+                <span key={s.name} className="relative flex h-full w-1/3 max-w-4 items-end">
+                  <span
+                    className={`w-full rounded-t ${BG[s.tone]} transition-opacity group-hover:opacity-80`}
+                    style={{ height: `${percent(p.values[j] ?? 0n, max)}%` }}
+                  />
+                  {vs && p.before ? (
+                    <span
+                      aria-hidden
+                      className="absolute -inset-x-0.5 h-0.5 translate-y-1/2 rounded-full bg-ink/70"
+                      style={{ bottom: `${percent(p.before[j] ?? 0n, max)}%` }}
+                    />
+                  ) : null}
+                </span>
               ))}
             </span>
             <span className="mt-1 truncate text-center text-[11px] text-muted">{p.label}</span>
@@ -169,18 +228,33 @@ export function BarChart({
 export function InOutBars({
   periods,
   label,
+  vs,
 }: {
-  periods: { label: string; longLabel: string; cameIn: bigint; wentOut: bigint; href: string }[];
+  periods: {
+    label: string;
+    longLabel: string;
+    cameIn: bigint;
+    wentOut: bigint;
+    href: string;
+    /** the same period a month / a year earlier, when comparing */
+    before?: { cameIn: bigint; wentOut: bigint } | null;
+  }[];
   label: string;
+  vs?: string;
 }) {
   return (
     <BarChart
       label={label}
+      vs={vs}
       series={[
         { name: "Came in", tone: "in" },
         { name: "Went out", tone: "out" },
       ]}
-      points={periods.map((p) => ({ ...p, values: [p.cameIn, p.wentOut] }))}
+      points={periods.map((p) => ({
+        ...p,
+        values: [p.cameIn, p.wentOut],
+        before: p.before ? [p.before.cameIn, p.before.wentOut] : null,
+      }))}
     />
   );
 }
@@ -331,34 +405,41 @@ const LATE_BG = ["bg-series-other", "bg-late-1", "bg-late-2", "bg-late-3", "bg-l
 export function AgingBars({
   buckets,
   label,
+  vs,
 }: {
-  buckets: { label: string; value: bigint; count: number; href: string }[];
+  /** `before`: the bucket's amount a month / a year earlier, when comparing */
+  buckets: { label: string; value: bigint; count: number; href: string; before?: bigint | null }[];
   label: string;
+  vs?: string;
 }) {
-  const max = biggest(buckets.map((b) => b.value));
+  const max = biggest(
+    buckets.flatMap((b) => [b.value, ...(vs && b.before != null ? [b.before] : [])]),
+  );
   return (
-    <Frame label={label}>
+    <Frame label={label} vs={vs}>
       <ul className="flex flex-col gap-1">
         {buckets.map((b, i) => (
           <li key={b.label}>
             <Link
               href={b.href}
-              aria-label={`${b.label}: ${formatRupiah(b.value)} on ${b.count} ${b.count === 1 ? "bill" : "bills"}. Show only these.`}
+              aria-label={`${b.label}: ${formatRupiah(b.value)} on ${b.count} ${b.count === 1 ? "bill" : "bills"}.${wasSentence(vs, b.value, b.before)} Show only these.`}
               className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 sm:grid-cols-[minmax(0,8rem)_1fr_9.5rem] rounded-md px-1 py-1 text-xs transition-colors hover:bg-ground"
             >
               <span className="truncate">{b.label}</span>
               {/* on a phone the bar gets its own line under the words */}
-              <span className="order-last col-span-2 h-2.5 overflow-hidden rounded-full bg-line/60 sm:order-none sm:col-span-1">
+              <span className="relative order-last col-span-2 h-2.5 overflow-hidden rounded-full bg-line/60 sm:order-none sm:col-span-1">
                 <span
                   className={`block h-full rounded-full ${LATE_BG[Math.min(i, 4)]}`}
                   style={{ width: `${percent(b.value, max)}%` }}
                 />
+                {vs && b.before != null ? <WasMark at={percent(b.before, max)} /> : null}
               </span>
               <span className="text-right whitespace-nowrap tabular-nums">
                 {formatRupiahShort(b.value)}
                 <span className="ml-1.5 text-muted">
                   · {b.count} {b.count === 1 ? "bill" : "bills"}
                 </span>
+                <Change vs={vs} now={b.value} before={b.before} />
               </span>
             </Link>
           </li>
@@ -462,40 +543,52 @@ export function Donut({
 export function ShareBars({
   items,
   label,
+  vs,
 }: {
-  items: { label: string; value: bigint; tone: "in" | "out" | "neutral"; href: string }[];
+  /** `before`: the amount a month / a year earlier, when comparing (null: not known) */
+  items: {
+    label: string;
+    value: bigint;
+    tone: "in" | "out" | "neutral";
+    href: string;
+    before?: bigint | null;
+  }[];
   label: string;
+  vs?: string;
 }) {
-  const max = items.reduce((m, i) => (i.value > m ? i.value : m), 0n);
+  const max = biggest(
+    items.flatMap((i) => [i.value, ...(vs && i.before != null ? [i.before] : [])]),
+  );
   return (
-    <figure className="flex flex-col gap-2">
-      <figcaption className="text-xs text-muted">{label}</figcaption>
+    <Frame label={label} vs={vs}>
       <ul className="flex flex-col gap-1">
         {items.map((item) => (
           <li key={`${item.tone}-${item.label}`}>
             <Link
               href={item.href}
-              aria-label={`${item.label}: ${item.tone === "in" ? "came in " : item.tone === "out" ? "went out " : ""}${formatRupiah(item.value)}. Show only these.`}
+              aria-label={`${item.label}: ${item.tone === "in" ? "came in " : item.tone === "out" ? "went out " : ""}${formatRupiah(item.value)}.${wasSentence(vs, item.value, item.before)} Show only these.`}
               className="group grid grid-cols-[minmax(0,9rem)_1fr_auto] items-center gap-2 rounded-md px-1 py-1 text-xs transition-colors hover:bg-ground"
             >
               <span className="truncate">{item.label}</span>
-              <span className="h-2 overflow-hidden rounded-full bg-line/60">
+              <span className="relative h-2 overflow-hidden rounded-full bg-line/60">
                 <span
                   className={`block h-full rounded-full ${item.tone === "in" ? "bg-in" : item.tone === "out" ? "bg-problem" : "bg-brand"}`}
                   style={{ width: `${percent(item.value, max)}%` }}
                 />
+                {vs && item.before != null ? <WasMark at={percent(item.before, max)} /> : null}
               </span>
               <span
                 className={`text-right whitespace-nowrap tabular-nums ${item.tone === "in" ? "text-in" : item.tone === "out" ? "text-problem" : ""}`}
               >
                 {item.tone === "in" ? "+" : item.tone === "out" ? "−" : ""}
                 {formatRupiahShort(item.value)}
+                <Change vs={vs} now={item.value} before={item.before} />
               </span>
             </Link>
           </li>
         ))}
       </ul>
-    </figure>
+    </Frame>
   );
 }
 
@@ -632,5 +725,28 @@ export function Sparkline({ values, className }: { values: number[]; className?:
         strokeLinejoin="round"
       />
     </svg>
+  );
+}
+
+/** The page's period comparison for all its charts (P9-T6); the choice lives in the address. */
+export function CompareToggle({
+  vs,
+  href,
+}: {
+  vs: Vs | null;
+  /** this page's address with the comparison changed (other filters kept) */
+  href: (vs: Vs | null) => string;
+}) {
+  return (
+    <FilterTabs
+      label="Compare the charts"
+      value={vs ?? ""}
+      options={[
+        ["", "No comparison"],
+        ["month", `vs ${VS_WORDS.month}`],
+        ["year", `vs ${VS_WORDS.year}`],
+      ]}
+      href={(option) => href(option || null)}
+    />
   );
 }

@@ -9,7 +9,10 @@ import { useFormAction } from "@/components/use-form-action";
 const link =
   "inline-flex h-10 items-center rounded-lg border border-line bg-surface px-4 text-sm font-medium transition-colors hover:bg-ground";
 
-/** Everything a person needs to send one reminder themselves — or to hand it to Cowork. */
+/**
+ * Everything a person needs to send one message themselves — or to hand it to Cowork. With a
+ * reminder it can be marked as sent; a customer statement has none, so it only opens the message.
+ */
 export function SendByHand({
   reminderId,
   subject,
@@ -17,15 +20,17 @@ export function SendByHand({
   email,
   phone,
   pdfUrl,
+  pdfLabel = "Download the bill (PDF)",
   canAct,
 }: {
-  reminderId: string;
+  reminderId?: string;
   subject: string;
   body: string;
   email: string | null;
   phone: string | null;
-  /** the bill as a PDF, to attach by hand (only for the bill message) */
+  /** the PDF to attach by hand (the bill, or the statement) */
   pdfUrl?: string;
+  pdfLabel?: string;
   canAct: boolean;
 }) {
   const [state, action, pending] = useFormAction<CloseState>(closeReminder, {});
@@ -63,7 +68,7 @@ export function SendByHand({
         </Button>
         {pdfUrl ? (
           <a href={pdfUrl} className={link}>
-            Download the bill (PDF)
+            {pdfLabel}
           </a>
         ) : null}
         {mailto ? (
@@ -76,7 +81,7 @@ export function SendByHand({
             Open in WhatsApp
           </a>
         ) : null}
-        {canAct ? (
+        {canAct && reminderId ? (
           <form onSubmit={action} className="flex gap-2">
             <input type="hidden" name="reminderId" value={reminderId} />
             <Button type="submit" name="outcome" value="sent" disabled={pending || Boolean(state.done)}>

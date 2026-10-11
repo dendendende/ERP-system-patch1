@@ -2,6 +2,8 @@
 // back button, bookmarks and "copy link" all work). Everything typed is checked here; anything
 // that doesn't make sense is simply ignored.
 
+import { type Vs, readVs } from "./compare";
+
 export const PAGE_SIZE = 500;
 
 export const DIRECTIONS = ["in", "out"] as const;
@@ -28,6 +30,8 @@ export type MoneyFilters = {
   q: string;
   sort: (typeof SORTS)[number];
   page: number;
+  /** compare the charts with a month or a year before (P9-T6); the list itself ignores it */
+  vs: Vs | "";
 };
 
 export const STATUS_WORDS: Record<(typeof STATUSES)[number], string> = {
@@ -66,6 +70,7 @@ export function readMoneyFilters(params: Params): MoneyFilters {
     q: one(params.q).slice(0, 100),
     sort: pick(one(params.sort), SORTS) || "date_desc",
     page: Math.max(1, Math.floor(Number(one(params.page))) || 1),
+    vs: readVs(params.vs) ?? "",
   };
 }
 
@@ -108,6 +113,7 @@ function queryOf(next: MoneyFilters) {
     "min",
     "max",
     "q",
+    "vs",
   ] as const) {
     if (next[key]) query.set(key, next[key]);
   }

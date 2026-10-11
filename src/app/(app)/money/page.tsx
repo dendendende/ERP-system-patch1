@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AnalyticalListPage, panelHref } from "@/components/analytical-list-page";
-import { InOutBars, ShareBars } from "@/components/charts";
+import { CompareToggle, InOutBars, ShareBars } from "@/components/charts";
 import { FilterBar, FilterField, filterInput } from "@/components/filter-bar";
 import { SavedViews } from "@/components/saved-views";
 import { Card, EmptyState, Money } from "@/components/ui";
+import { VS_WORDS, fromTop, shiftBack, shiftForward } from "@/lib/compare";
 import { formatRupiah } from "@/lib/money";
 import {
   PAGE_SIZE,
@@ -73,7 +74,9 @@ export default async function MoneyPage({ searchParams }: PageProps<"/money">) {
   const [column, ascending] = SORT_COLUMN[f.sort];
   const openId = typeof params.open === "string" && isUuid(params.open) ? params.open : null;
 
-  const [list, summary, categories, accounts, opened] = await Promise.all([
+  const vs = f.vs || null;
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+  const [list, summary, categories, accounts, opened, earlier] = await Promise.all([
     supabase
       .rpc("money_list", args)
       // amount::text keeps rupiah exact: JSON numbers lose precision above 2^53
@@ -88,12 +91,32 @@ export default async function MoneyPage({ searchParams }: PageProps<"/money">) {
     supabase.from("bank_accounts").select("id, bank_name, account_last4").order("bank_name"),
     // the row open in the side panel (none, or one this person can't see: no panel)
     openId ? transactionView(openId, "panel") : null,
+    // comparing: the same summary over the dates a month / a year before
+    vs
+      ? supabase.rpc("money_list_summary", {
+          ...args,
+          p_from: f.from ? shiftBack(f.from, vs) : undefined,
+          p_to: shiftBack(f.to || today, vs),
+        })
+      : null,
   ]);
   // never show totals or rows worked out from a failed read
-  const failed = [list, summary, categories, accounts].find((r) => r.error);
+  const failed = [list, summary, categories, accounts, earlier].find((r) => r?.error);
   if (failed?.error) throw new Error(`Money in & out didn't load: ${failed.error.message}`);
 
   const s = summary.data as unknown as Summary;
+  // the earlier figures, keyed to what they compare with. A month missing there had nothing
+  // (0); the categories are a top six (fromTop).
+  const was = earlier?.data as unknown as Summary | undefined;
+  const monthBefore = new Map(
+    (was?.by_month ?? []).map((m) => [
+      shiftForward(m.month, vs!),
+      { cameIn: BigInt(m.came_in), wentOut: BigInt(m.went_out) },
+    ]),
+  );
+  const categoryBefore = new Map(
+    (was?.by_category ?? []).map((c) => [`${c.direction}:${c.category_id}`, BigInt(c.total)]),
+  );
   const rows = list.data ?? [];
   const cameIn = BigInt(s.came_in);
   const wentOut = BigInt(s.went_out);
@@ -254,17 +277,20 @@ export default async function MoneyPage({ searchParams }: PageProps<"/money">) {
     <InOutBars
       key="months"
       label="In and out by month"
+      vs={vs ? VS_WORDS[vs] : undefined}
       periods={s.by_month.map((m) => ({
         label: monthShort.format(new Date(`${m.month}T00:00:00Z`)),
         longLabel: monthLong.format(new Date(`${m.month}T00:00:00Z`)),
         cameIn: BigInt(m.came_in),
         wentOut: BigInt(m.went_out),
         href: moneyHref(f, monthRange(m.month)),
+        before: vs ? (monthBefore.get(m.month) ?? { cameIn: 0n, wentOut: 0n }) : null,
       }))}
     />,
     <ShareBars
       key="categories"
       label="Biggest categories"
+      vs={vs ? VS_WORDS[vs] : undefined}
       items={s.by_category.map((c) => ({
         label: c.category,
         value: BigInt(c.total),
@@ -272,6 +298,7 @@ export default async function MoneyPage({ searchParams }: PageProps<"/money">) {
         href: c.category_id
           ? moneyHref(f, { category: c.category_id })
           : moneyHref(f, { status: "needs_label" }),
+        before: vs ? fromTop(categoryBefore, `${c.direction}:${c.category_id}`, 6) : null,
       }))}
     />,
   ];
@@ -285,6 +312,12 @@ export default async function MoneyPage({ searchParams }: PageProps<"/money">) {
         openId={opened ? openId : null}
         total={total}
         net={(cameIn - wentOut).toString()}
+        // cancelling a mistake is done one entry at a time, never in bulk
+        labels={
+          canImport
+            ? (categories.data ?? []).filter((c) => c.name !== "Cancelled (entered by mistake)")
+            : undefined
+        }
         toolbar={
           <p className="tabular-nums">
             {total.toLocaleString("id-ID")} {total === 1 ? "transaction" : "transactions"}
@@ -340,6 +373,7 @@ export default async function MoneyPage({ searchParams }: PageProps<"/money">) {
       filters={filters}
       totals={total === 0 ? null : totals}
       charts={total === 0 ? [] : charts}
+      compare={<CompareToggle vs={vs} href={(v) => moneyHref(f, { vs: v ?? "", page: f.page })} />}
       table={
         total === 0 ? (
           <EmptyState title="Nothing to show">

@@ -1,5 +1,6 @@
 // Bills list filters (P8-T8a), kept in the address bar like Money in & out's (lib/money-filters):
 // every view has its own link; anything typed that doesn't make sense is ignored.
+import { type Vs, readVs } from "./compare";
 import { AGING_BUCKETS } from "./metrics";
 import { isUuid } from "./money-filters";
 
@@ -34,6 +35,8 @@ export type BillFilters = {
   q: string;
   sort: (typeof BILL_SORTS)[number];
   page: number;
+  /** compare the charts with a month or a year before (P9-T6); the list itself ignores it */
+  vs: Vs | "";
 };
 
 type Params = Record<string, string | string[] | undefined>;
@@ -52,6 +55,7 @@ export function readBillFilters(params: Params): BillFilters {
     q: one(params.q).slice(0, 100),
     sort: pick(one(params.sort), BILL_SORTS) || "due_desc",
     page: Math.max(1, Math.floor(Number(one(params.page))) || 1),
+    vs: readVs(params.vs) ?? "",
   };
 }
 
@@ -69,7 +73,7 @@ export function billListArgs(f: BillFilters) {
 
 function queryOf(next: BillFilters) {
   const query = new URLSearchParams();
-  for (const key of ["status", "bucket", "customer", "from", "to", "q"] as const) {
+  for (const key of ["status", "bucket", "customer", "from", "to", "q", "vs"] as const) {
     if (next[key]) query.set(key, next[key]);
   }
   if (next.sort !== "due_desc") query.set("sort", next.sort);

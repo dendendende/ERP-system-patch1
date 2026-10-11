@@ -110,8 +110,10 @@ body {
   }
 }
 
-/* One clear focus ring for everything you can reach with the keyboard. */
+/* One clear focus ring for everything you can reach with the keyboard. Dark areas (the sidebar,
+   Home's banner, the ticked-rows bar) set --focus-ring to white: blue on navy is too faint
+   (under 3:1). This rule sits outside the utility layers, so it wins over focus-visible:outline-*. */
 :where(a, button, summary, select, input, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-brand);
+  outline: 2px solid var(--focus-ring, var(--color-brand));
   outline-offset: 2px;
 }

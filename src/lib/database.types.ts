@@ -156,6 +156,7 @@ export type Database = {
           external_id: string
           id: string
           occurred_at: string
+          payee: string | null
         }
         Insert: {
           amount: number
@@ -168,6 +169,7 @@ export type Database = {
           external_id: string
           id?: string
           occurred_at: string
+          payee?: string | null
         }
         Update: {
           amount?: number
@@ -180,6 +182,7 @@ export type Database = {
           external_id?: string
           id?: string
           occurred_at?: string
+          payee?: string | null
         }
         Relationships: [
           {
@@ -593,6 +596,29 @@ export type Database = {
           value?: number | null
         }
         Relationships: []
+      }
+      notification_seen: {
+        Row: {
+          seen_at: string
+          user_id: string
+        }
+        Insert: {
+          seen_at?: string
+          user_id: string
+        }
+        Update: {
+          seen_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_seen_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       parallel_run_weeks: {
         Row: {
@@ -1427,6 +1453,31 @@ export type Database = {
         }
         Returns: Json
       }
+      bulk_check: {
+        Args: { p_ids: string[]; p_what: string }
+        Returns: undefined
+      }
+      bulk_label: {
+        Args: { p_category_id: string; p_transaction_ids: string[] }
+        Returns: {
+          error: string
+          id: string
+        }[]
+      }
+      bulk_send_reminder_now: {
+        Args: { p_invoice_ids: string[] }
+        Returns: {
+          error: string
+          id: string
+        }[]
+      }
+      bulk_void_invoices: {
+        Args: { p_invoice_ids: string[]; p_reason: string }
+        Returns: {
+          error: string
+          id: string
+        }[]
+      }
       came_in_went_out: {
         Args: { p_from: string; p_to: string }
         Returns: {
@@ -1586,6 +1637,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      mark_notifications_seen: { Args: never; Returns: undefined }
       match_payments: { Args: never; Returns: number }
       match_rule: {
         Args: { p_description: string; p_direction: string }
@@ -1696,6 +1748,19 @@ export type Database = {
           entry_id: string
           occurred_at: string
           suggestions: Json
+        }[]
+      }
+      notifications: {
+        Args: { p_big?: number; p_days?: number }
+        Returns: {
+          amount: number
+          at: string
+          detail: string
+          id: string
+          is_new: boolean
+          kind: string
+          link_id: string
+          who: string
         }[]
       }
       payee_pattern: { Args: { p_description: string }; Returns: string }

@@ -151,12 +151,13 @@ const TABLE_SIZE = 8;
 
 /**
  * The result as a printable PDF: title, what it was run for, the table in aligned columns (the
- * first column gives way when the page is too narrow), totals, and the notes.
+ * first column gives way when the page is too narrow), totals, and the notes. `ran.stamp` replaces
+ * the "Made … · Cashflow" line (a statement sent to a customer carries the company instead).
  */
 export function reportPdf(
-  report: ReportDef,
+  report: Pick<ReportDef, "title">,
   result: ReportResult,
-  ran: { params: string; on: string },
+  ran: { params: string; on: string; stamp?: string },
 ): Uint8Array {
   const text = (cells: Record<string, Cell>) =>
     result.columns.map((c) =>
@@ -187,7 +188,7 @@ export function reportPdf(
   const lines: PdfLine[] = [
     { text: report.title, size: 16, bold: true },
     { text: ran.params, size: 10, gapBefore: 2 },
-    { text: `Made ${showCell("day", ran.on)} · Cashflow`, size: 9, gapBefore: 2 },
+    { text: ran.stamp ?? `Made ${showCell("day", ran.on)} · Cashflow`, size: 9, gapBefore: 2 },
     {
       text: line(result.columns.map((c) => c.label)),
       mono: true,

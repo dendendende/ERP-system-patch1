@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AnalyticalListPage, panelHref } from "@/components/analytical-list-page";
-import { AgingBars, ShareBars } from "@/components/charts";
+import { AgingBars, CompareToggle, ShareBars } from "@/components/charts";
 import { FilterBar, FilterField, filterInput } from "@/components/filter-bar";
 import { SavedViews } from "@/components/saved-views";
 import { Card, EmptyState, Money } from "@/components/ui";
@@ -15,6 +15,7 @@ import {
   billViewQuery,
   readBillFilters,
 } from "@/lib/bill-filters";
+import { VS_WORDS, fromTop, shiftBack } from "@/lib/compare";
 import { AGING_BUCKETS } from "@/lib/metrics";
 import { isUuid } from "@/lib/money-filters";
 import { createClient } from "@/lib/supabase/server";
@@ -39,9 +40,9 @@ type Summary = {
 export default async function BillsPage({ searchParams }: PageProps<"/customers/bills">) {
   const params = await searchParams;
   const supabase = await createClient();
+  const { data: role } = await supabase.rpc("current_app_role");
   // the bare page opens my role's starting view, if the owner set one ("Everything" is ?all=1)
   if (Object.keys(params).length === 0) {
-    const { data: role } = await supabase.rpc("current_app_role");
     const { data: start } = role
       ? await supabase
           .from("saved_views")
@@ -57,7 +58,9 @@ export default async function BillsPage({ searchParams }: PageProps<"/customers/
   const [column, ascending] = BILL_SORT_COLUMN[f.sort];
   const openId = typeof params.open === "string" && isUuid(params.open) ? params.open : null;
 
-  const [list, summary, customers, opened] = await Promise.all([
+  const vs = f.vs || null;
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+  const [list, summary, customers, opened, earlier] = await Promise.all([
     supabase
       .rpc("bill_list", args)
       // rupiah as text: exact above 2^53
@@ -70,12 +73,20 @@ export default async function BillsPage({ searchParams }: PageProps<"/customers/
     supabase.rpc("bill_list_summary", args),
     supabase.from("customers").select("id, name").order("name"),
     openId ? billView(openId, "panel") : null,
+    // comparing: the same bills as they stood a month / a year before
+    vs ? supabase.rpc("bill_list_summary", { ...args, p_on: shiftBack(today, vs) }) : null,
   ]);
   // never show totals or rows worked out from a failed read
-  const failed = [list, summary, customers].find((r) => r.error);
+  const failed = [list, summary, customers, earlier].find((r) => r?.error);
   if (failed?.error) throw new Error(`Bills didn't load: ${failed.error.message}`);
 
   const s = summary.data as unknown as Summary;
+  // the earlier aging is complete (a bucket missing had 0); its customers are a top six (fromTop)
+  const was = earlier?.data as unknown as Summary | undefined;
+  const bucketBefore = new Map((was?.aging ?? []).map((a) => [a.bucket, BigInt(a.owed)]));
+  const customerBefore = new Map(
+    (was?.by_customer ?? []).map((c) => [c.customer_id, BigInt(c.owed)]),
+  );
   const rows = list.data ?? [];
   const total = Number(s.count);
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -193,21 +204,25 @@ export default async function BillsPage({ searchParams }: PageProps<"/customers/
           <AgingBars
             key="aging"
             label="Still owed, by how late"
+            vs={vs ? VS_WORDS[vs] : undefined}
             buckets={s.aging.map((a) => ({
               label: AGING_BUCKETS[a.bucket],
               value: BigInt(a.owed),
               count: a.count,
               href: billHref(f, { bucket: String(a.bucket) }),
+              before: vs ? (bucketBefore.get(a.bucket) ?? 0n) : null,
             }))}
           />,
           <ShareBars
             key="customers"
             label="Who owes the most"
+            vs={vs ? VS_WORDS[vs] : undefined}
             items={s.by_customer.map((c) => ({
               label: c.customer,
               value: BigInt(c.owed),
               tone: "neutral" as const,
               href: billHref(f, { customer: c.customer_id }),
+              before: vs ? fromTop(customerBefore, c.customer_id, 6) : null,
             }))}
           />,
         ]
@@ -222,6 +237,7 @@ export default async function BillsPage({ searchParams }: PageProps<"/customers/
         openId={opened ? openId : null}
         total={total}
         owed={s.owed}
+        canAct={role === "owner" || role === "operator"}
         toolbar={
           <p className="tabular-nums">
             {total.toLocaleString("id-ID")} {total === 1 ? "bill" : "bills"}
@@ -267,6 +283,7 @@ export default async function BillsPage({ searchParams }: PageProps<"/customers/
       filters={filters}
       totals={total === 0 ? null : totals}
       charts={total === 0 ? [] : charts}
+      compare={<CompareToggle vs={vs} href={(v) => billHref(f, { vs: v ?? "", page: f.page })} />}
       table={
         total === 0 ? (
           <EmptyState title="Nothing to show">

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AnalyticalListPage, panelHref } from "@/components/analytical-list-page";
-import { ShareBars } from "@/components/charts";
+import { CompareToggle, ShareBars } from "@/components/charts";
 import { FilterBar, FilterField, filterInput } from "@/components/filter-bar";
 import { SavedViews } from "@/components/saved-views";
 import { Card, EmptyState, FilterTabs, Money } from "@/components/ui";
@@ -13,6 +13,7 @@ import {
   readCustomerFilters,
 } from "@/lib/customer-filters";
 import { isUuid } from "@/lib/money-filters";
+import { VS_WORDS, shiftBack } from "@/lib/compare";
 import { createClient } from "@/lib/supabase/server";
 import { customerView } from "./[id]/customer";
 import { AddCustomerForm } from "./add-customer-form";
@@ -56,14 +57,21 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
   if (f.show === "ended") query = query.eq("is_ongoing", false);
   if (f.q) query = query.ilike("name", `%${f.q}%`);
 
-  const [list, earned, opened] = await Promise.all([
+  const vs = f.vs || null;
+  const then = vs ? shiftBack(today, vs) : today;
+  const [list, earned, opened, owedThen, earnedThen] = await Promise.all([
     query,
     supabase
       .rpc("revenue_by_customer", { p_on: today })
       .select("customer_id, customer, total::text"),
     openId ? customerView(openId, "panel") : null,
+    // comparing: what each owed, and had paid over 12 months, a month / a year before
+    vs ? supabase.rpc("invoice_owed_on", { p_on: then }).select("customer_id, owed::text") : null,
+    vs
+      ? supabase.rpc("revenue_by_customer", { p_on: then }).select("customer_id, total::text")
+      : null,
   ]);
-  const failed = [list, earned].find((r) => r.error);
+  const failed = [list, earned, owedThen, earnedThen].find((r) => r?.error);
   if (failed?.error) throw new Error(`Customers didn't load: ${failed.error.message}`);
 
   // the view's columns are all nullable in the generated types; a customer always has them
@@ -161,6 +169,12 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
     </section>
   );
 
+  // the earlier figures per customer: complete lists, so anyone missing had 0
+  const owedBefore = new Map<string, bigint>();
+  for (const o of owedThen?.data ?? [])
+    owedBefore.set(o.customer_id, (owedBefore.get(o.customer_id) ?? 0n) + BigInt(o.owed));
+  const paidBefore = new Map((earnedThen?.data ?? []).map((e) => [e.customer_id, BigInt(e.total)]));
+  const was = (m: Map<string, bigint>, id: string) => (vs ? (m.get(id) ?? 0n) : null);
   const topOwed = rows
     .filter((c) => owed(c) > 0n)
     .sort((a, b) => (owed(b) > owed(a) ? 1 : owed(b) < owed(a) ? -1 : 0))
@@ -173,11 +187,13 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
           <ShareBars
             key="owed"
             label="Who owes the most"
+            vs={vs ? VS_WORDS[vs] : undefined}
             items={topOwed.map((c) => ({
               label: c.name,
               value: owed(c),
               tone: "neutral" as const,
               href: open(c.id),
+              before: was(owedBefore, c.id),
             }))}
           />,
         ]
@@ -187,11 +203,13 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
           <ShareBars
             key="paid"
             label="Who paid you most, last 12 months"
+            vs={vs ? VS_WORDS[vs] : undefined}
             items={topPaid.map((e) => ({
               label: e.customer,
               value: BigInt(e.total),
               tone: "in" as const,
               href: open(e.customer_id),
+              before: was(paidBefore, e.customer_id),
             }))}
           />,
         ]
@@ -216,12 +234,14 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
       filters={filters}
       totals={rows.length ? totals : null}
       charts={rows.length ? charts : []}
+      compare={<CompareToggle vs={vs} href={(v) => customerHref(f, { vs: v ?? "" })} />}
       table={
         rows.length ? (
           <CustomersTable
             rows={rows}
             listHref={listHref}
             openId={opened ? openId : null}
+            canAct={role === "owner" || role === "operator"}
             toolbar={
               <p className="tabular-nums">
                 {rows.length.toLocaleString("id-ID")} {rows.length === 1 ? "customer" : "customers"}

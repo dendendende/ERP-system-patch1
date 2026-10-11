@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { CommandPalette } from "@/components/command-palette";
+import { Bell } from "@/components/bell";
 import { Logo, SidebarNav, TabBar } from "@/components/nav";
 import { jumpsFor } from "@/lib/command-palette";
 import { currentSyncState } from "@/lib/bank/current-sync";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "../login/actions";
+import { loadNotices } from "./notifications/data";
 
 const ROLE_LABEL = { owner: "Owner", operator: "Operator", viewer: "Viewer" } as const;
 
@@ -28,6 +30,14 @@ async function SyncStatus({ onDark = false }: { onDark?: boolean }) {
       {state.message}
     </Link>
   );
+}
+
+/** The bell and its count of new notifications. A failed read only loses the count, never the page. */
+async function NotificationBell({ onDark = false }: { onDark?: boolean }) {
+  const count = await loadNotices()
+    .then((all) => all.filter((n) => n.isNew).length)
+    .catch(() => 0);
+  return <Bell count={count} onDark={onDark} />;
 }
 
 function SearchIcon() {
@@ -64,11 +74,14 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       >
         Skip to content
       </a>
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-7 bg-nav px-3 py-5 text-nav-ink md:flex">
-        <p className="flex items-center gap-2.5 px-3 text-lg font-semibold tracking-tight text-white">
-          <Logo className="size-7" />
-          Cashflow
-        </p>
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-7 bg-nav px-3 py-5 text-nav-ink [--focus-ring:var(--color-surface)] md:flex">
+        <div className="flex items-center justify-between pr-1 pl-3">
+          <p className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-white">
+            <Logo className="size-7" />
+            Cashflow
+          </p>
+          <NotificationBell onDark />
+        </div>
         <button
           type="button"
           data-open-palette
@@ -111,6 +124,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </p>
         <div className="flex items-center gap-3">
           <SyncStatus />
+          <NotificationBell />
           <button
             type="button"
             data-open-palette

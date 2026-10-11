@@ -307,6 +307,28 @@ describe("the customer statement (hand-calculated)", () => {
       const late = await customerStatement(viaPg(db), customer, "2031-06-21", "2031-06-30");
       expect(late.rows[0].cells.owed).toBe(11n * M);
       expect(late.rows).toHaveLength(3);
+      // the copy sent to an Indonesian customer: their words, the same rupiah
+      const sent = await customerStatement(viaPg(db), customer, "2031-06-01", "2031-06-30", "id");
+      expect(sent.columns.map((c) => c.label)).toEqual([
+        "Tanggal",
+        "Keterangan",
+        "Tagihan",
+        "Ditagih",
+        "Dibayar/dibatalkan",
+        "Sisa",
+      ]);
+      expect(sent.rows.map((x) => [x.cells.what, x.cells.owed])).toEqual([
+        ["Sisa di awal", 3n * M],
+        ["Tagihan", 13n * M],
+        ["Tagihan", 21n * M],
+        ["Tagihan", 26n * M],
+        ["Pembayaran", 22n * M],
+        ["Pembayaran", 21n * M],
+        ["Pembayaran", 11n * M],
+        ["Tagihan dibatalkan", 7n * M],
+        ["Lunas tanpa transfer", 4n * M],
+      ]);
+      expect(sent.totals).toMatchObject({ what: "Sisa di akhir", owed: 4n * M });
     });
   });
 });

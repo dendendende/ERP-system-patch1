@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { panelHref } from "@/components/analytical-list-page";
 import { type Column, DataTable } from "@/components/data-table";
+import { BillsBar } from "../../bulk-bars";
 import { Money, StatusPill } from "@/components/ui";
 import { type BillFilters, billHref } from "@/lib/bill-filters";
 import { INVOICE_STATUS } from "@/lib/invoice-status";
@@ -49,6 +50,7 @@ export function BillsTable({
   toolbar,
   total,
   owed,
+  canAct,
 }: {
   rows: BillRow[];
   filters: BillFilters;
@@ -60,6 +62,8 @@ export function BillsTable({
   total: number;
   /** Still owed on all that match, as text (bigint-safe). */
   owed: string;
+  /** owner or operator: tick bills to remind about or cancel them together */
+  canAct: boolean;
 }) {
   const [key, dir] = filters.sort.split("_") as ["due" | "owed", "asc" | "desc"];
   const columns: Column<BillRow>[] = [
@@ -149,6 +153,11 @@ export function BillsTable({
       sortHref={(s) => billHref(filters, { sort: `${s.key}_${s.dir}` as BillFilters["sort"] })}
       csvHref={billHref({ ...filters, page: 1 }, {}, "/customers/bills/export")}
       toolbar={toolbar}
+      bulkActions={
+        canAct
+          ? (ticked, clear, say) => <BillsBar ticked={ticked} clear={clear} say={say} />
+          : undefined
+      }
     />
   );
 }

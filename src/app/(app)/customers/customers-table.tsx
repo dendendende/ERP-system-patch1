@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { panelHref } from "@/components/analytical-list-page";
 import { type Column, DataTable } from "@/components/data-table";
+import { CustomersBar } from "../bulk-bars";
 import { Money, StatusPill } from "@/components/ui";
 
 export type CustomerRow = {
@@ -45,12 +46,15 @@ export function CustomersTable({
   listHref,
   openId,
   toolbar,
+  canAct,
 }: {
   rows: CustomerRow[];
   /** This list's address: a customer opens beside it, in the side panel. */
   listHref: string;
   openId: string | null;
   toolbar: ReactNode;
+  /** owner or operator: tick customers to remind them all at once */
+  canAct: boolean;
 }) {
   const columns: Column<CustomerRow>[] = [
     {
@@ -114,6 +118,11 @@ export function CustomersTable({
       columns={columns}
       activeKey={openId ?? undefined}
       toolbar={toolbar}
+      bulkActions={
+        canAct
+          ? (ticked, clear, say) => <CustomersBar ticked={ticked} clear={clear} say={say} />
+          : undefined
+      }
     />
   );
 }

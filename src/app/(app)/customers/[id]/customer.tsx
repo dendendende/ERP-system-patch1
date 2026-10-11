@@ -177,12 +177,20 @@ export async function customerView(
         </EmptyState>
       )}
       {invoices?.length ? (
-        <Link
-          href={`/customers/bills?customer=${customer.id}`}
-          className="self-start text-sm underline underline-offset-4"
-        >
-          All their bills, in the bills list
-        </Link>
+        <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+          <Link
+            href={`/customers/bills?customer=${customer.id}`}
+            className="underline underline-offset-4"
+          >
+            All their bills, in the bills list
+          </Link>
+          <Link
+            href={`/reports?report=customer_statement&customer=${customer.id}`}
+            className="underline underline-offset-4"
+          >
+            Their statement, to read or send
+          </Link>
+        </div>
       ) : null}
     </div>
   );

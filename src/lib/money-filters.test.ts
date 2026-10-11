@@ -25,6 +25,7 @@ describe("money list filters", () => {
       q: "  BIAYA ADM ",
       sort: "amount_desc",
       page: "3",
+      vs: "year",
     });
     expect(f).toEqual({
       from: "2026-09-01",
@@ -38,6 +39,7 @@ describe("money list filters", () => {
       q: "BIAYA ADM",
       sort: "amount_desc",
       page: 3,
+      vs: "year",
     });
   });
 

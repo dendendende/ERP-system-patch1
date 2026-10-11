@@ -98,3 +98,29 @@ describe("describeAudit", () => {
     expect(d.changes).toEqual(["Changed category from one that was removed to nothing"]);
   });
 });
+
+describe("a reminder put on the list by hand", () => {
+  it("says which bill and which message, without the delivery bookkeeping", () => {
+    const d = describeAudit(
+      {
+        action: "insert",
+        table_name: "reminders",
+        record_id: "rem-1",
+        old_value: null,
+        new_value: {
+          id: "rem-1",
+          invoice_id: "inv-1",
+          template_key: "overdue",
+          channel: "email",
+          status: "scheduled",
+          scheduled_for: "2026-10-11T01:00:00+00:00",
+          schedule_id: null,
+          created_by: "user-1",
+        },
+      },
+      names,
+    );
+    expect(d.title).toBe("Put a late notice for bill INV-0001 on the list to send");
+    expect(d.changes).toEqual(["Sent by: email", "Status: waiting to be sent"]);
+  });
+});

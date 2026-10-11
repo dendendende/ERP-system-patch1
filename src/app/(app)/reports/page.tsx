@@ -4,10 +4,13 @@ import { SaveViewForm } from "@/components/save-view-form";
 import { Button, Card } from "@/components/ui";
 import { filterInput } from "@/components/filter-bar";
 import type { Role } from "@/lib/auth/routes";
+import { companyAccount } from "@/lib/company";
+import { statementMessage } from "@/lib/reminders/templates";
 import { REPORTS, findReport } from "@/lib/report-library";
 import { mayRun, readParams, reportQuery } from "@/lib/reports";
 import { createClient } from "@/lib/supabase/server";
 import { deleteView } from "../saved-views-actions";
+import { SendByHand } from "../send-by-hand";
 import { ReportTable } from "./report-table";
 
 export const metadata = { title: "Reports · Cashflow" };
@@ -194,6 +197,76 @@ async function RunReport({
       </div>
 
       <ReportTable title={report.title} result={result} />
+
+      {/* contact details are for the owner and operators only, and so is sending */}
+      {report.id === "customer_statement" &&
+      values.customer &&
+      (role === "owner" || role === "operator") ? (
+        <SendStatement
+          customer={values.customer}
+          from={values.from}
+          to={values.to}
+          owed={BigInt(String(result.totals?.owed ?? 0))}
+        />
+      ) : null}
     </div>
+  );
+}
+
+/** Send the statement just run (P9-T3): by hand, like the reminders — the message, then the PDF. */
+async function SendStatement({
+  customer,
+  from,
+  to,
+  owed,
+}: {
+  customer: string;
+  from: string;
+  to: string;
+  owed: bigint;
+}) {
+  const supabase = await createClient();
+  const [{ data: who }, { data: contact }] = await Promise.all([
+    supabase.from("customers").select("name, language").eq("id", customer).maybeSingle(),
+    supabase.rpc("customer_contacts").eq("customer_id", customer).maybeSingle(),
+  ]);
+  if (!who) return null;
+  let account;
+  try {
+    account = companyAccount();
+  } catch {
+    return (
+      <p className="rounded-lg bg-attention-bg px-3 py-2 text-sm text-attention-ink">
+        The company bank account isn&apos;t set up, so the statement can&apos;t be sent yet.
+      </p>
+    );
+  }
+  const [first, last] = from <= to ? [from, to] : [to, from];
+  const lang = who.language === "en" ? "en" : "id";
+  const message = statementMessage(
+    lang,
+    { customerName: who.name, from: first, to: last, owed },
+    account,
+  );
+  return (
+    <section aria-label="Send this statement" className="flex flex-col gap-2">
+      <h2 className="font-display text-xl">Send this statement</h2>
+      <p className="text-sm text-muted">
+        In {lang === "id" ? "Bahasa Indonesia" : "English"}, their language. Download the PDF, then
+        open the message and attach it.
+      </p>
+      {!contact?.billing_email && !contact?.whatsapp_number ? (
+        <p className="text-sm text-muted">No email or WhatsApp number saved for them.</p>
+      ) : null}
+      <SendByHand
+        subject={message.subject}
+        body={message.body}
+        email={contact?.billing_email ?? null}
+        phone={contact?.whatsapp_number ?? null}
+        pdfUrl={`/customers/${customer}/statement?from=${first}&to=${last}`}
+        pdfLabel="Download the statement (PDF)"
+        canAct={false}
+      />
+    </section>
   );
 }

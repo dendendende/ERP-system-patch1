@@ -15,6 +15,7 @@ export function AnalyticalListPage({
   filters,
   totals,
   charts = [],
+  compare,
   table,
   tableLabel,
   panel,
@@ -30,6 +31,8 @@ export function AnalyticalListPage({
   totals?: ReactNode;
   /** 0–3 small charts of the filtered rows; clicking a bar narrows the list. */
   charts?: ReactNode[];
+  /** Above the charts: comparing them with a month or a year before (CompareToggle). */
+  compare?: ReactNode;
   table: ReactNode;
   /** What the list is, for screen readers, e.g. "Transactions". */
   tableLabel: string;
@@ -53,15 +56,17 @@ export function AnalyticalListPage({
         {filters}
         {totals}
         {charts.length ? (
-          <section
-            aria-label="Charts"
-            className={`grid gap-3 ${charts.length > 1 ? "md:grid-cols-2" : ""} ${charts.length > 2 ? "2xl:grid-cols-3" : ""}`}
-          >
-            {charts.map((chart, i) => (
-              <Card key={i} className="min-w-0 p-4">
-                {chart}
-              </Card>
-            ))}
+          <section aria-label="Charts" className="flex flex-col gap-2">
+            {compare}
+            <div
+              className={`grid gap-3 ${charts.length > 1 ? "md:grid-cols-2" : ""} ${charts.length > 2 ? "2xl:grid-cols-3" : ""}`}
+            >
+              {charts.map((chart, i) => (
+                <Card key={i} className="min-w-0 p-4">
+                  {chart}
+                </Card>
+              ))}
+            </div>
           </section>
         ) : null}
         <section aria-label={tableLabel} className="flex flex-col gap-2">

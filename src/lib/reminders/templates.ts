@@ -5,7 +5,13 @@ import type { CompanyAccount } from "@/lib/company";
 import { formatRupiah } from "@/lib/money";
 
 export type Language = "id" | "en";
-export const TEMPLATE_KEYS = ["invoice", "reminder", "due_tomorrow", "overdue", "thank_you"] as const;
+export const TEMPLATE_KEYS = [
+  "invoice",
+  "reminder",
+  "due_tomorrow",
+  "overdue",
+  "thank_you",
+] as const;
 export type TemplateKey = (typeof TEMPLATE_KEYS)[number];
 
 export type MessageFacts = {
@@ -135,4 +141,49 @@ export function renderMessage(
     account.companyName,
   ].join("\n");
   return { subject: chosen.subject, body };
+}
+
+/**
+ * The message that goes with a customer statement (the PDF is attached by hand). It doesn't ask
+ * for the total: each bill has its own exact amount to transfer (its unique code).
+ */
+export function statementMessage(
+  lang: Language,
+  facts: { customerName: string; from: string; to: string; owed: bigint },
+  account: CompanyAccount,
+): Message {
+  const [from, to] = [day(facts.from, lang), day(facts.to, lang)];
+  const owed = formatRupiah(facts.owed);
+  const t =
+    lang === "id"
+      ? {
+          subject: `Laporan tagihan ${account.companyName}, ${from} – ${to}`,
+          greet: `Halo ${facts.customerName},`,
+          lines: [
+            `Terlampir laporan tagihan Anda untuk ${from} sampai ${to}.`,
+            facts.owed > 0n
+              ? `Sisa tagihan per ${to}: ${owed}. Mohon transfer tepat sesuai jumlah di setiap tagihan.`
+              : "Semua tagihan sudah lunas. Terima kasih!",
+          ],
+        }
+      : {
+          subject: `Statement from ${account.companyName}, ${from} – ${to}`,
+          greet: `Hello ${facts.customerName},`,
+          lines: [
+            `Attached is your statement for ${from} to ${to}.`,
+            facts.owed > 0n
+              ? `Still owed on ${to}: ${owed}. Please transfer the exact amount shown on each bill.`
+              : "Everything is paid. Thank you!",
+          ],
+        };
+  const body = [
+    t.greet,
+    "",
+    ...t.lines,
+    "",
+    accountWarning(account, lang),
+    "",
+    account.companyName,
+  ];
+  return { subject: t.subject, body: body.join("\n") };
 }

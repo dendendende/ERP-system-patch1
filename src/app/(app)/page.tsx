@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ShareBars } from "@/components/charts";
+import { CompareToggle, InOutBars, ShareBars } from "@/components/charts";
 import { CueGrid, CueSkeleton } from "@/components/cue";
 import { Card, Skeleton } from "@/components/ui";
 import { type Role, canAccess } from "@/lib/auth/routes";
 import { currentSyncState } from "@/lib/bank/current-sync";
 import { staleAfterHours } from "@/lib/bank/sync-status";
+import { type Vs, VS_WORDS, readVs, shiftBack, shiftForward } from "@/lib/compare";
 import { type HealthStatus, worstStatus } from "@/lib/health-status";
 import { homeHeadline, trendSentence } from "@/lib/home";
 import { arrange, cueInfo } from "@/lib/home-cues";
 import { formatRupiah } from "@/lib/money";
+import { monthRange } from "@/lib/money-filters";
 import { createClient } from "@/lib/supabase/server";
 import { ArrangeCues } from "./arrange-cues";
 import { HomeCue, lastSevenDays, monthly, revenue, spending, summary } from "./home-cues";
@@ -46,90 +48,68 @@ const HEALTH_DOT: Record<HealthStatus, string> = {
   danger: "bg-red-400",
 };
 
-const monthName = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" });
-
-/** Money in vs out, last 6 months. Plain bars; the numbers are also in a table for screen readers. */
-function InOutChart({
-  months,
-}: {
-  months: { month: string; came_in: bigint; went_out: bigint }[];
-}) {
-  const max = months.reduce(
-    (m, x) => (x.came_in > m ? x.came_in : x.went_out > m ? x.went_out : m),
-    1n,
-  );
-  const pct = (v: bigint) => `${Number((v * 100n) / max)}%`;
-  return (
-    <>
-      <div className="flex h-40 items-end gap-3" aria-hidden>
-        {months.map((m) => (
-          <div key={m.month} className="flex h-full flex-1 flex-col justify-end gap-1">
-            <div className="flex flex-1 items-end justify-center gap-1">
-              <div
-                className="w-1/3 rounded-t bg-in transition-[height] duration-200 ease-out"
-                style={{ height: pct(m.came_in) }}
-                title={`Came in ${formatRupiah(m.came_in)}`}
-              />
-              <div
-                className="w-1/3 rounded-t bg-muted/40 transition-[height] duration-200 ease-out"
-                style={{ height: pct(m.went_out) }}
-                title={`Went out ${formatRupiah(m.went_out)}`}
-              />
-            </div>
-            <p className="text-center text-xs text-muted">{monthName.format(new Date(m.month))}</p>
-          </div>
-        ))}
-      </div>
-      <table className="sr-only">
-        <caption>Money in and out per month</caption>
-        <thead>
-          <tr>
-            <th>Month</th>
-            <th>Came in</th>
-            <th>Went out</th>
-          </tr>
-        </thead>
-        <tbody>
-          {months.map((m) => (
-            <tr key={m.month}>
-              <td>{monthName.format(new Date(m.month))}</td>
-              <td>{formatRupiah(m.came_in)}</td>
-              <td>{formatRupiah(m.went_out)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </>
-  );
-}
+const monthShort = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" });
+const monthLong = new Intl.DateTimeFormat("en-GB", {
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+const vsWords = (vs: Vs | null) => (vs ? VS_WORDS[vs] : undefined);
 
 /** Who paid the most over the last 12 months: the concentration cue, as a picture. */
-async function TopCustomers({ today }: { today: string }) {
-  const top = (await revenue(today)).byCustomer.slice(0, 5);
+async function TopCustomers({ today, vs }: { today: string; vs: Vs | null }) {
+  const [top, then] = await Promise.all([
+    revenue(today).then((r) => r.byCustomer.slice(0, 5)),
+    // comparing: the 12 months up to a month / a year before (everyone; missing = 0)
+    vs
+      ? (await createClient())
+          .rpc("revenue_by_customer", { p_on: shiftBack(today, vs) })
+          .select("customer_id, total::text")
+      : null,
+  ]);
+  if (then?.error) throw new Error(`Couldn't compare who paid: ${then.error.message}`);
   if (!top.length) return null;
+  const before = new Map(
+    (then?.data ?? []).map((e) => [`/customers/${e.customer_id}`, BigInt(e.total)]),
+  );
   return (
     <Card>
       <ShareBars
         label="Who paid you most, last 12 months"
-        items={top.map((c) => ({ label: c.name, value: c.total, tone: "in", href: c.href }))}
+        vs={vsWords(vs)}
+        items={top.map((c) => ({
+          label: c.name,
+          value: c.total,
+          tone: "in",
+          href: c.href,
+          before: vs ? (before.get(c.href) ?? 0n) : null,
+        }))}
       />
     </Card>
   );
 }
 
 /** Where the money went this month, biggest categories first. */
-async function TopCosts({ today }: { today: string }) {
-  const top = (await spending(today)).byCategory.filter((c) => c.thisMonth > 0n).slice(0, 5);
+async function TopCosts({ today, vs }: { today: string; vs: Vs | null }) {
+  // comparing: that month up to the same day, a month / a year before (every category)
+  const [now, then] = await Promise.all([
+    spending(today),
+    vs ? spending(shiftBack(today, vs)) : null,
+  ]);
+  const top = now.byCategory.filter((c) => c.thisMonth > 0n).slice(0, 5);
   if (!top.length) return null;
+  const before = new Map((then?.byCategory ?? []).map((c) => [c.category, c.thisMonth]));
   return (
     <Card>
       <ShareBars
         label="Where money went this month"
+        vs={vsWords(vs)}
         items={top.map((c) => ({
           label: c.category,
           value: c.thisMonth,
           tone: "out",
           href: c.href,
+          before: vs ? (before.get(c.category) ?? 0n) : null,
         }))}
       />
     </Card>
@@ -137,7 +117,9 @@ async function TopCosts({ today }: { today: string }) {
 }
 
 export default async function HomePage({ searchParams }: PageProps<"/">) {
-  const arranging = (await searchParams).arrange === "1";
+  const params = await searchParams;
+  const arranging = params.arrange === "1";
+  const vs = readVs(params.vs);
   const supabase = await createClient();
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
   const {
@@ -145,7 +127,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
   } = await supabase.auth.getUser();
 
   // the summary and months are cached for the request: the cues read the same ones
-  const [sync, s, monthRows, health, mismatches, me, layout] = await Promise.all([
+  const [sync, s, monthRows, health, mismatches, me, layout, monthsThen] = await Promise.all([
     currentSyncState(),
     summary(),
     monthly(),
@@ -170,10 +152,12 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       .select("cues")
       .eq("user_id", user?.id ?? "")
       .maybeSingle(),
+    // comparing: the same six months, a month / a year before (each up to the same day)
+    vs ? supabase.rpc("monthly_in_out", { p_today: shiftBack(today, vs) }) : null,
   ]);
 
   // Never show money worked out from a failed read: Rp 0 would look like an empty bank.
-  const failed = [health, mismatches, layout].find((r) => r.error);
+  const failed = [health, mismatches, layout, monthsThen].find((r) => r?.error);
   if (failed?.error) throw new Error(`Home didn't load: ${failed.error.message}`);
 
   const role: Role = me.data?.role ?? "viewer";
@@ -191,6 +175,12 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
     came_in: big(m.came_in),
     went_out: big(m.went_out),
   }));
+  const monthBefore = new Map(
+    (monthsThen?.data ?? []).map((m) => [
+      shiftForward(m.month, vs!),
+      { cameIn: big(m.came_in), wentOut: big(m.went_out) },
+    ]),
+  );
   const { shown, hidden } = arrange(role, layout.data?.cues ?? null);
   const todayWords = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
@@ -230,7 +220,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
       {me.data?.role === "owner" ? <NewDevices /> : null}
 
       {/* the headline, on the one dark-blue banner in the app */}
-      <section className="relative isolate overflow-hidden rounded-2xl bg-brand-deep p-6 text-white shadow-lg md:p-8">
+      <section className="relative isolate overflow-hidden rounded-2xl bg-brand-deep p-6 text-white shadow-lg [--focus-ring:var(--color-surface)] md:p-8">
         <div
           aria-hidden
           className="absolute inset-0 -z-10 opacity-20 [background-image:radial-gradient(white_1px,transparent_1px)] [background-size:18px_18px] [mask-image:linear-gradient(to_left,black,transparent_75%)]"
@@ -276,7 +266,7 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
                 <Link
                   key={dir}
                   href={`/money/new?dir=${dir}`}
-                  className={`${colour} flex items-center gap-3 rounded-xl px-4 py-3 text-white shadow-lg ring-1 ring-white/20 transition hover:-translate-y-0.5 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white`}
+                  className={`${colour} flex items-center gap-3 rounded-xl px-4 py-3 text-white shadow-lg ring-1 ring-white/20 transition hover:-translate-y-0.5 hover:brightness-110`}
                 >
                   <span
                     aria-hidden
@@ -320,30 +310,38 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
 
       {months.length ? (
         <section aria-label="Money in and out" className="flex flex-col gap-3">
-          <h2 className="font-display text-xl">Money in and out</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-display text-xl">Money in and out</h2>
+            {/* one choice for every chart on Home */}
+            <CompareToggle vs={vs} href={(v) => (v ? `/?vs=${v}` : "/")} />
+          </div>
           <Card className="flex flex-col gap-4">
-            <InOutChart months={months} />
-            <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-              <p>{trendSentence(months)}</p>
-              <p className="flex gap-4 text-muted">
-                <span className="flex items-center gap-1.5">
-                  <span aria-hidden className="size-2.5 rounded-sm bg-in" /> Came in
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span aria-hidden className="size-2.5 rounded-sm bg-muted/40" /> Went out
-                </span>
-              </p>
-            </div>
+            <InOutBars
+              label="Last 6 months"
+              vs={vsWords(vs)}
+              periods={months.map((m) => {
+                const { from, to } = monthRange(m.month);
+                return {
+                  label: monthShort.format(new Date(`${m.month}T00:00:00Z`)),
+                  longLabel: monthLong.format(new Date(`${m.month}T00:00:00Z`)),
+                  cameIn: m.came_in,
+                  wentOut: m.went_out,
+                  href: `/money?from=${from}&to=${to}`,
+                  before: vs ? (monthBefore.get(m.month) ?? { cameIn: 0n, wentOut: 0n }) : null,
+                };
+              })}
+            />
+            <p className="text-sm">{trendSentence(months)}</p>
           </Card>
         </section>
       ) : null}
 
       <div className="grid gap-3 md:grid-cols-2">
         <Suspense fallback={<Skeleton className="h-40" />}>
-          <TopCustomers today={today} />
+          <TopCustomers today={today} vs={vs} />
         </Suspense>
         <Suspense fallback={<Skeleton className="h-40" />}>
-          <TopCosts today={today} />
+          <TopCosts today={today} vs={vs} />
         </Suspense>
       </div>
 

@@ -15,8 +15,9 @@ test("Home says where the money stands at a glance", async ({ page }, testInfo) 
   await expect(cues.getByText("Marked paid by hand")).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: "Add money" })).toHaveCount(0); // read-only
   const chart = page.getByRole("region", { name: "Money in and out" });
-  await expect(chart.getByRole("table")).toHaveCount(1); // the numbers behind the bars
-  await expect(chart.getByText(/months|pattern/)).toBeVisible();
+  // each month is a link that says its numbers, and opens that month's money
+  await expect(chart.getByRole("link", { name: /: came in Rp .*, went out Rp / })).toHaveCount(6);
+  await expect(chart.locator("p", { hasText: /months|pattern/ })).toBeVisible(); // the trend
 });
 
 test("the health pill leads to Business health", async ({ page }, testInfo) => {

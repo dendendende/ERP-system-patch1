@@ -33,6 +33,8 @@ export const TABLES: Record<string, { label: string; plural: string; nameField?:
   invoices: { label: "bill", plural: "Bills", nameField: "number" },
   payments: { label: "payment", plural: "Payments" },
   reminder_schedule: { label: "reminder step", plural: "Reminder steps", nameField: "kind" },
+  // only the ones a person puts on the list ("Send a reminder now", alone or ticked together)
+  reminders: { label: "reminder to send", plural: "Reminders sent by hand" },
   health_thresholds: { label: "health limit", plural: "Health limits", nameField: "signal" },
   recurring_expenses: { label: "regular cost", plural: "Regular costs", nameField: "name" },
   security_settings: { label: "sign-in setting", plural: "Sign-in settings" },
@@ -101,6 +103,7 @@ const FIELD: Record<string, string> = {
   kind: "step",
   channels: "sent by",
   template_key: "message",
+  channel: "sent by",
   signal: "check",
   healthy_limit: "safe limit",
   warning_limit: "danger limit",
@@ -134,6 +137,17 @@ const HIDDEN = new Set([
   "recorded_at",
   "external_id",
   "entered_by",
+  // worked out from the description by the database (P9-T7), never typed
+  "payee",
+  // a reminder's delivery bookkeeping: the list shows how it went
+  "schedule_id",
+  "scheduled_for",
+  "provider_message_id",
+  "amount_shown",
+  "sent_at",
+  "sent_by",
+  "claimed_at",
+  "error",
 ]);
 
 const MONEY = new Set([
@@ -185,6 +199,8 @@ const CODED = new Set([
   "channels",
   "signal",
   "language",
+  "template_key",
+  "channel",
 ]);
 
 const WORDS: Record<string, string> = {
@@ -202,6 +218,8 @@ const WORDS: Record<string, string> = {
   // payments.method
   manual: "matched by hand",
   no_transfer: "marked paid without a transfer",
+  // reminders.status
+  scheduled: "waiting to be sent",
   // directions, cycles, sources
   in: "money in",
   out: "money out",
@@ -302,6 +320,14 @@ export function describeAudit(row: AuditRow, names: Names): { title: string; cha
     const amount = showValue("amount_applied", newV.amount_applied, names);
     const bill = showValue("invoice_id", newV.invoice_id, names);
     return { title: `Recorded a payment of ${amount} on bill ${bill}`, changes };
+  }
+  if (row.table_name === "reminders" && row.action === "insert") {
+    const bill = showValue("invoice_id", newV.invoice_id, names);
+    const what = showValue("template_key", newV.template_key, names);
+    return {
+      title: `Put a ${what} for bill ${bill} on the list to send`,
+      changes: changes.filter((c) => !c.startsWith("Bill:") && !c.startsWith("Message:")),
+    };
   }
   return { title: `${row.action === "insert" ? "Added" : "Removed"} ${thing}`, changes };
 }

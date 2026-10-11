@@ -56,8 +56,11 @@ export function DataTable<Row>({
   sortHref?: (sort: Sort) => string;
   /** The server's CSV of the whole list. Without it, the rows here download as they're shown. */
   csvHref?: string;
-  /** Adds tick boxes; this renders the actions for what's ticked. */
-  bulkActions?: (selected: Row[], clear: () => void) => ReactNode;
+  /**
+   * Adds tick boxes; this renders the actions for what's ticked. `say` leaves a line of words
+   * above the table (how a bulk action went), which stays after the ticks are cleared.
+   */
+  bulkActions?: (selected: Row[], clear: () => void, say: (words: string) => void) => ReactNode;
   /** Left of the table's controls, e.g. "1,204 transactions". */
   toolbar?: ReactNode;
   /** The row open in the side panel: marked, so the eye finds its place in the list. */
@@ -68,6 +71,7 @@ export function DataTable<Row>({
   >(null);
   const [hidden, setHidden] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [said, say] = useState("");
   const [view, setView] = useState({ start: 0, end: FIRST_PAINT, h: 40 });
   const body = useRef<HTMLTableSectionElement>(null);
 
@@ -232,6 +236,11 @@ export function DataTable<Row>({
 
   return (
     <div className="flex flex-col gap-2">
+      {bulkActions ? (
+        <p role="status" className="text-sm empty:hidden">
+          {said}
+        </p>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
         <div>{toolbar}</div>
         <div className="flex items-center gap-4">
@@ -399,10 +408,10 @@ export function DataTable<Row>({
         <div
           role="region"
           aria-label="Ticked rows"
-          className="sticky bottom-20 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-nav bg-nav px-4 py-2.5 text-sm text-surface shadow-sm md:bottom-4"
+          className="sticky bottom-20 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-nav bg-nav px-4 py-2.5 text-sm text-surface [--focus-ring:var(--color-surface)] shadow-sm md:bottom-4"
         >
           <span className="tabular-nums">{ticked.length.toLocaleString("id-ID")} ticked</span>
-          {bulkActions!(ticked, clear)}
+          {bulkActions!(ticked, clear, say)}
           <Button type="button" variant="secondary" onClick={clear} className="ml-auto h-8">
             Untick all
           </Button>

@@ -53,12 +53,11 @@ export default async function CategoriesAndRulesPage() {
                 return (
                   <li
                     key={rule.id}
-                    className={`flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4 last:border-b-0 ${
-                      rule.is_active ? "" : "opacity-60"
-                    }`}
+                    className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4 last:border-b-0"
                   >
                     <div className="min-w-0">
-                      <p className="font-medium">
+                      {/* switched off: muted (the pill says Off), never faded — still readable */}
+                      <p className={`font-medium ${rule.is_active ? "" : "text-muted"}`}>
                         {rule.direction === "in" ? "Money in" : "Money out"}{" "}
                         {MATCH_WORDS[rule.match_type]} &ldquo;{rule.pattern}&rdquo;
                       </p>

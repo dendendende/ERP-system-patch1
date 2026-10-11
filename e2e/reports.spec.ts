@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { signIn } from "./auth";
+import { openCustomer } from "./open";
 
 // P9-T1: the report library — run a report with its parameters, keep it as a favourite.
 
@@ -94,4 +95,50 @@ test("a viewer isn't offered the change history extract, and can't open it", asy
   await expect(library.getByText("Change history extract")).toHaveCount(0);
   await page.goto("/reports?report=audit_extract");
   await expect(page.getByText("We couldn't find that page")).toBeVisible();
+});
+
+test("send a customer statement: from their page, the message and the PDF in their language", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "desktop covers the flow");
+  await signIn(page, "e2e-operator@example.test");
+  await openCustomer(page, "PT Karya Digital");
+  await page.getByRole("link", { name: "Their statement, to read or send" }).click();
+  await expect(page).toHaveURL(/report=customer_statement&customer=/);
+  await expect(page.getByRole("table", { name: "Customer statement" })).toBeVisible();
+
+  const send = page.getByRole("region", { name: "Send this statement" });
+  await send.getByText("Read the message").click();
+  await expect(send.getByText(/^Laporan tagihan /)).toBeVisible(); // an Indonesian customer
+  await expect(send.getByRole("link", { name: "Open in email" })).toHaveAttribute(
+    "href",
+    /^mailto:ap@karyadigital\.example\?subject=Laporan/,
+  );
+  await expect(send.getByRole("link", { name: "Open in WhatsApp" })).toHaveAttribute(
+    "href",
+    /^https:\/\/wa\.me\/6281234560003\?text=/,
+  );
+  // a statement isn't a reminder: nothing to mark as sent
+  await expect(send.getByRole("button", { name: "Mark as sent" })).toHaveCount(0);
+
+  const [pdf] = await Promise.all([
+    page.waitForEvent("download"),
+    send.getByRole("link", { name: "Download the statement (PDF)" }).click(),
+  ]);
+  expect(pdf.suggestedFilename()).toMatch(/^statement-\d{4}-\d{2}-\d{2}-\d{4}-\d{2}-\d{2}\.pdf$/);
+  const bytes = Buffer.concat(await (await pdf.createReadStream()).toArray());
+  expect(bytes.toString("latin1", 0, 8)).toBe("%PDF-1.4");
+  expect(bytes.toString("latin1")).toContain("Laporan tagihan");
+});
+
+test("a viewer reads a customer statement but isn't offered to send it", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "desktop covers the flow");
+  await signIn(page, "e2e-viewer@example.test");
+  await page.goto(
+    "/reports?report=customer_statement&customer=00000000-0000-4000-8000-0000000000c3",
+  );
+  await expect(page.getByRole("table", { name: "Customer statement" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Send this statement" })).toHaveCount(0);
 });

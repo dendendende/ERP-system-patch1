@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { type CompanyAccount, companyAccount } from "@/lib/company";
-import { type MessageFacts, TEMPLATE_KEYS, accountWarning, renderMessage } from "./templates";
+import {
+  type MessageFacts,
+  TEMPLATE_KEYS,
+  accountWarning,
+  renderMessage,
+  statementMessage,
+} from "./templates";
 
 const account: CompanyAccount = {
   companyName: "PT Contoh Software",
@@ -52,7 +58,12 @@ describe("what the messages ask for", () => {
   });
 
   it("a partly paid bill says what arrived, what is left, and the new amount to transfer", () => {
-    const part = { ...facts, paidSoFar: 2_000_000n, stillOwed: 2_900_000n, amountToTransfer: 2_900_017n };
+    const part = {
+      ...facts,
+      paidSoFar: 2_000_000n,
+      stillOwed: 2_900_000n,
+      amountToTransfer: 2_900_017n,
+    };
     const { body } = renderMessage("overdue", "en", part, account);
     expect(body).toContain("we have received Rp 2.000.000. Rp 2.900.000 is still owed.");
     expect(body).toContain("Please transfer exactly Rp 2.900.017");
@@ -89,5 +100,31 @@ describe("the company account comes from config only", () => {
     expect(() => companyAccount({ ...env, COMPANY_ACCOUNT_NUMBER: "123-456-7890" })).toThrow(
       /digits only/,
     );
+  });
+});
+
+describe("the message sent with a customer statement", () => {
+  const facts = {
+    customerName: "PT Maju Jaya",
+    from: "2026-08-01",
+    to: "2026-10-11",
+    owed: 4_900_000n,
+  };
+
+  it("says what is still owed, without one total to transfer, and carries the fixed account", () => {
+    const { subject, body } = statementMessage("id", facts, account);
+    expect(subject).toBe("Laporan tagihan PT Contoh Software, 1 Agustus 2026 – 11 Oktober 2026");
+    expect(body).toContain("Halo PT Maju Jaya,");
+    expect(body).toContain("Sisa tagihan per 11 Oktober 2026: Rp");
+    expect(body).toContain("sesuai jumlah di setiap tagihan"); // each bill has its own code
+    expect(body).toContain(accountWarning(account, "id"));
+  });
+
+  it("thanks them when nothing is owed, in English for English customers", () => {
+    const { subject, body } = statementMessage("en", { ...facts, owed: 0n }, account);
+    expect(subject).toBe("Statement from PT Contoh Software, 1 August 2026 – 11 October 2026");
+    expect(body).toContain("Everything is paid. Thank you!");
+    expect(body).not.toContain("Still owed");
+    expect(body).toContain(accountWarning(account, "en"));
   });
 });

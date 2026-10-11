@@ -63,3 +63,22 @@ describe("row-level security covers everything", () => {
     });
   });
 });
+
+// P9-T7: a bare current_app_role() or auth.uid() in a policy runs once for every row it checks
+// (2s on Home at 50,000 bank rows). Wrapped in a sub-select it runs once per query.
+describe("row-level security asks who you are once per query", () => {
+  it("every policy wraps current_app_role() and auth.uid() in a sub-select", async () => {
+    await withRollback(async (db) => {
+      const { rows } = await db.query(
+        `select tablename || '.' || policyname as policy from pg_policies
+          where schemaname = 'public'
+            and replace(replace(coalesce(qual, '') || ' ' || coalesce(with_check, ''),
+                                '( SELECT current_app_role() AS current_app_role)', ''),
+                        '( SELECT auth.uid() AS uid)', '')
+                ~ '(current_app_role|auth[.]uid)[(][)]'
+          order by 1`,
+      );
+      expect(rows.map((r) => r.policy)).toEqual([]);
+    });
+  });
+});

@@ -135,6 +135,7 @@ export function CommandPalette({ jumps }: { jumps: Jump[] }) {
           <circle cx="11" cy="11" r="7" />
           <path d="m20 20-3.5-3.5" />
         </svg>
+        {/* its focus ring sits inside the box: outside, the dialog's edge would cut it off */}
         <input
           ref={input}
           role="combobox"
@@ -147,7 +148,7 @@ export function CommandPalette({ jumps }: { jumps: Jump[] }) {
           value={q}
           onChange={(e) => type(e.target.value)}
           onKeyDown={onKeyDown}
-          className="h-12 min-w-0 flex-1 bg-transparent text-sm outline-none! placeholder:text-muted"
+          className="h-12 min-w-0 flex-1 rounded-md bg-transparent px-1 text-sm -outline-offset-4! placeholder:text-muted"
         />
         <kbd className="rounded border border-line px-1.5 text-[11px] text-muted">Esc</kbd>
       </div>

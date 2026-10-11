@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { panelHref } from "@/components/analytical-list-page";
 import { type Column, DataTable } from "@/components/data-table";
+import { type LabelCategory, LabelBar } from "../bulk-bars";
 import { Money, StatusPill } from "@/components/ui";
 import { type MoneyFilters, moneyHref } from "@/lib/money-filters";
 
@@ -42,6 +43,7 @@ export function TransactionsTable({
   toolbar,
   total,
   net,
+  labels,
 }: {
   rows: TransactionRow[];
   filters: MoneyFilters;
@@ -54,6 +56,8 @@ export function TransactionsTable({
   total: number;
   /** Came in − went out of all that match (own transfers left out), as text: bigint-safe. */
   net: string;
+  /** owner or operator: the categories to label ticked rows with (none: no tick boxes) */
+  labels?: LabelCategory[];
 }) {
   const [key, dir] = filters.sort.split("_") as ["date" | "amount", "asc" | "desc"];
   const columns: Column<TransactionRow>[] = [
@@ -138,6 +142,13 @@ export function TransactionsTable({
       sortHref={(s) => moneyHref(filters, { sort: `${s.key}_${s.dir}` as MoneyFilters["sort"] })}
       csvHref={moneyHref({ ...filters, page: 1 }, {}, "/money/export")}
       toolbar={toolbar}
+      bulkActions={
+        labels
+          ? (ticked, clear, say) => (
+              <LabelBar ticked={ticked} categories={labels} clear={clear} say={say} />
+            )
+          : undefined
+      }
     />
   );
 }

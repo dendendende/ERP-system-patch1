@@ -209,11 +209,32 @@ export async function agingDetail(db: Client, on: string): Promise<ReportResult>
 
 // ---- customer statement -----------------------------------------------------------------------
 
-const STATEMENT_WORDS: Record<string, string> = {
-  bill: "Bill",
-  payment: "Payment",
-  marked_paid: "Marked paid without a transfer",
-  cancelled: "Bill cancelled",
+// The statement's words: English on screen; to send, in the customer's own language.
+const STATEMENT_WORDS = {
+  en: {
+    columns: ["Date", "What", "Bill", "Billed", "Paid or cancelled", "Still owed"],
+    start: "Owed at the start",
+    end: "Owed at the end",
+    kinds: {
+      bill: "Bill",
+      payment: "Payment",
+      marked_paid: "Marked paid without a transfer",
+      cancelled: "Bill cancelled",
+    } as Record<string, string>,
+    note: "Payments count on the day the money reached the bank, and only up to what the bill still owed: the last digits of a unique transfer amount are never owed.",
+  },
+  id: {
+    columns: ["Tanggal", "Keterangan", "Tagihan", "Ditagih", "Dibayar/dibatalkan", "Sisa"],
+    start: "Sisa di awal",
+    end: "Sisa di akhir",
+    kinds: {
+      bill: "Tagihan",
+      payment: "Pembayaran",
+      marked_paid: "Lunas tanpa transfer",
+      cancelled: "Tagihan dibatalkan",
+    } as Record<string, string>,
+    note: "Pembayaran dihitung pada hari dana masuk ke rekening kami, sebesar sisa tagihannya: angka unik di akhir jumlah transfer tidak pernah ditagihkan.",
+  },
 };
 
 /** What one customer owes on a day (invoice_owed_on: the rules every receivables total uses). */
@@ -231,21 +252,21 @@ async function owedOn(db: Client, customer: string, day: string) {
  * since, with the running balance — ending on what they owe at the end, to the rupiah (a line
  * says so if it ever doesn't). customer_statement() counts each payment only up to what its bill
  * still owed, like invoice_owed_on, so the two always agree.
+ * With `forCustomer` it is the copy to send: in their language, and one that doesn't add up is
+ * never made (it throws).
  */
 export async function customerStatement(
   db: Client,
   customer: string,
   from: string,
   to: string,
+  forCustomer?: "en" | "id",
 ): Promise<ReportResult> {
-  const columns: ReportResult["columns"] = [
-    { key: "day", label: "Date", kind: "day" },
-    { key: "what", label: "What", kind: "text" },
-    { key: "bill", label: "Bill", kind: "text" },
-    { key: "added", label: "Billed", kind: "rupiah" },
-    { key: "paid", label: "Paid or cancelled", kind: "rupiah" },
-    { key: "owed", label: "Still owed", kind: "rupiah" },
-  ];
+  const w = STATEMENT_WORDS[forCustomer ?? "en"];
+  const kinds = ["day", "text", "text", "rupiah", "rupiah", "rupiah"] as const;
+  const columns: ReportResult["columns"] = ["day", "what", "bill", "added", "paid", "owed"].map(
+    (key, i) => ({ key, label: w.columns[i], kind: kinds[i] }),
+  );
   if (!customer) return { columns, rows: [], notes: ["Choose a customer."] };
   const [first, last] = from <= to ? [from, to] : [to, from];
   const before = addDays(first, -1);
@@ -261,7 +282,7 @@ export async function customerStatement(
   let owed = opening;
   const rows: ReportResult["rows"] = [
     {
-      cells: { day: before, what: "Owed at the start", bill: null, added: null, paid: null, owed },
+      cells: { day: before, what: w.start, bill: null, added: null, paid: null, owed },
     },
     ...(lines.data ?? []).map((l) => {
       const amount = big(l.amount);
@@ -269,7 +290,7 @@ export async function customerStatement(
       return {
         cells: {
           day: l.day,
-          what: STATEMENT_WORDS[l.kind] ?? l.kind,
+          what: w.kinds[l.kind] ?? l.kind,
           bill: l.number,
           added: amount > 0n ? amount : null,
           paid: amount < 0n ? -amount : null,
@@ -280,17 +301,19 @@ export async function customerStatement(
     }),
   ];
   const amounts = (lines.data ?? []).map((l) => big(l.amount));
+  if (forCustomer && owed !== closing)
+    throw new Error(`The statement doesn't add up (${owed} vs ${closing}); not sending it`);
   return {
     columns,
     rows,
     totals: {
-      what: "Owed at the end",
+      what: w.end,
       added: sum(amounts.filter((a) => a > 0n)),
       paid: -sum(amounts.filter((a) => a < 0n)),
       owed: closing,
     },
     notes: [
-      "Payments count on the day the money reached the bank, and only up to what the bill still owed: the last digits of a unique transfer amount are never owed.",
+      w.note,
       ...(owed === closing
         ? []
         : [
