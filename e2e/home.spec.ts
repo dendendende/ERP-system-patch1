@@ -72,6 +72,22 @@ test("every number on Home opens the list behind it, already filtered", async ({
     await expect(page).toHaveURL(url);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   }
+  // the headline's amount opens the bank accounts
+  await page.goto("/");
+  await page
+    .getByText(/^You have Rp .+ in the bank/)
+    .getByRole("link", { name: /^Rp / })
+    .click();
+  await expect(page).toHaveURL(/\/settings\/bank$/);
+  // a bill number or amount in the day's work opens that bill
+  await page.goto("/");
+  await expect(page.getByText(/^You have Rp .+ in the bank/)).toBeVisible();
+  const work = page
+    .getByRole("region", { name: /^(Reminders to send|Call these customers|Today)$/ })
+    .getByRole("link", { name: /^(INV-|Rp )/ });
+  test.skip((await work.count()) === 0, "no bills in the day's work in this database");
+  await work.first().click();
+  await expect(page).toHaveURL(/\/customers\/[^/]+\/bills\/[^/]+$/);
 });
 
 test("the operator's Home starts with the day's work", async ({ page }, testInfo) => {

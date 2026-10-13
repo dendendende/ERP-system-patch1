@@ -6,7 +6,10 @@ import { renderMessage } from "@/lib/reminders/templates";
 import { createClient } from "@/lib/supabase/server";
 import { SendByHand } from "./send-by-hand";
 
-// The lists on Home: what someone should do today.
+// The lists on Home: what someone should do today. A bill number or amount opens that bill.
+
+const bill = (customerId: string | null, invoiceId: string | null) =>
+  `/customers/${customerId}/bills/${invoiceId}`;
 
 /** Bills so late that messages have stopped and a person should call (P3-T9). P4-T4 folds this
  * into the full Today list. */
@@ -33,8 +36,25 @@ export async function CallTheseCustomers() {
                 Call {r.customer_name}, {r.days_late} days late
               </Link>
             }
-            secondary={`${r.number}${r.phone ? ` · ${r.phone}` : ""} · reminders have stopped; a person should call`}
-            amount={formatRupiah(BigInt(r.still_owed ?? "0"))}
+            secondary={
+              <>
+                <Link
+                  href={bill(r.customer_id, r.invoice_id)}
+                  className="hover:underline underline-offset-4"
+                >
+                  {r.number}
+                </Link>
+                {r.phone ? ` · ${r.phone}` : ""} · reminders have stopped; a person should call
+              </>
+            }
+            amount={
+              <Link
+                href={bill(r.customer_id, r.invoice_id)}
+                className="hover:underline underline-offset-4"
+              >
+                {formatRupiah(BigInt(r.still_owed ?? "0"))}
+              </Link>
+            }
           />
         ))}
       </Card>
@@ -48,7 +68,7 @@ export async function FailedMessages({ since }: { since: string }) {
   const { data: rows } = await supabase
     .from("reminders")
     .select(
-      "id, channel, error, scheduled_for, invoices!inner (number, customer_id, customers (name))",
+      "id, channel, error, scheduled_for, invoice_id, invoices!inner (number, customer_id, customers (name))",
     )
     .eq("status", "failed")
     .gte("scheduled_for", since)
@@ -67,12 +87,21 @@ export async function FailedMessages({ since }: { since: string }) {
           <TableRow
             key={r.id}
             primary={
-              <Link
-                href={`/customers/${r.invoices.customer_id}`}
-                className="hover:underline underline-offset-4"
-              >
-                {r.invoices.customers?.name ?? "Customer"}, {r.invoices.number}
-              </Link>
+              <>
+                <Link
+                  href={`/customers/${r.invoices.customer_id}`}
+                  className="hover:underline underline-offset-4"
+                >
+                  {r.invoices.customers?.name ?? "Customer"}
+                </Link>
+                ,{" "}
+                <Link
+                  href={bill(r.invoices.customer_id, r.invoice_id)}
+                  className="hover:underline underline-offset-4"
+                >
+                  {r.invoices.number}
+                </Link>
+              </>
             }
             secondary={`${r.channel === "whatsapp" ? "WhatsApp" : "Email"} · ${r.error ?? "the message didn't go out"}`}
             amount={null}
@@ -176,10 +205,23 @@ export async function RemindersToSend() {
                   >
                     {r.customer_name}
                   </Link>{" "}
-                  <span className="font-normal text-muted">· {r.number}</span>
+                  <span className="font-normal text-muted">
+                    ·{" "}
+                    <Link
+                      href={bill(r.customer_id, r.invoice_id)}
+                      className="hover:underline underline-offset-4"
+                    >
+                      {r.number}
+                    </Link>
+                  </span>
                 </p>
                 {r.template_key === "thank_you" ? null : (
-                  <span className="text-sm tabular-nums">{formatRupiah(stillOwed)}</span>
+                  <Link
+                    href={bill(r.customer_id, r.invoice_id)}
+                    className="text-sm tabular-nums hover:underline underline-offset-4"
+                  >
+                    {formatRupiah(stillOwed)}
+                  </Link>
                 )}
               </div>
               {r.waiting_for_bank ? (
@@ -227,7 +269,9 @@ export async function TodayActivity({ today }: { today: string }) {
   const [payments, sent, unlabelled] = await Promise.all([
     supabase
       .from("payments")
-      .select("id, amount_applied::text, invoices (number, customer_id, customers (name))")
+      .select(
+        "id, invoice_id, amount_applied::text, invoices (number, customer_id, customers (name))",
+      )
       .eq("method", "auto")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
@@ -235,7 +279,7 @@ export async function TodayActivity({ today }: { today: string }) {
     supabase
       .from("reminders")
       .select(
-        "id, template_key, invoices (number, customer_id, customers (name)), reminder_schedule (kind)",
+        "id, template_key, invoice_id, invoices (number, customer_id, customers (name)), reminder_schedule (kind)",
       )
       .gte("sent_at", since)
       .order("sent_at", { ascending: false })
@@ -249,13 +293,13 @@ export async function TodayActivity({ today }: { today: string }) {
   const items = [
     ...(payments.data ?? []).map((p) => ({
       key: `p-${p.id}`,
-      href: `/customers/${p.invoices?.customer_id}`,
+      href: bill(p.invoices?.customer_id ?? null, p.invoice_id),
       text: `${p.invoices?.customers?.name ?? "A customer"} paid ${p.invoices?.number} — matched by the app`,
       amount: formatRupiah(BigInt(p.amount_applied)),
     })),
     ...(sent.data ?? []).map((r) => ({
       key: `r-${r.id}`,
-      href: `/customers/${r.invoices?.customer_id}`,
+      href: bill(r.invoices?.customer_id ?? null, r.invoice_id),
       text: `Reminder sent to ${r.invoices?.customers?.name ?? "a customer"} for ${r.invoices?.number}`,
       amount: null,
     })),
@@ -270,7 +314,7 @@ export async function TodayActivity({ today }: { today: string }) {
         {needsLabel ? (
           <TableRow
             primary={
-              <Link href="/money" className="hover:underline underline-offset-4">
+              <Link href="/money?status=needs_label" className="hover:underline underline-offset-4">
                 {needsLabel} {needsLabel === 1 ? "transaction needs" : "transactions need"} a label
               </Link>
             }
@@ -286,7 +330,13 @@ export async function TodayActivity({ today }: { today: string }) {
                 {i.text}
               </Link>
             }
-            amount={i.amount}
+            amount={
+              i.amount ? (
+                <Link href={i.href} className="hover:underline underline-offset-4">
+                  {i.amount}
+                </Link>
+              ) : null
+            }
           />
         ))}
       </Card>

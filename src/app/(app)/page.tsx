@@ -10,6 +10,7 @@ import { type Vs, VS_WORDS, readVs, shiftBack, shiftForward } from "@/lib/compar
 import { type HealthStatus, worstStatus } from "@/lib/health-status";
 import { homeHeadline, trendSentence } from "@/lib/home";
 import { arrange, cueInfo } from "@/lib/home-cues";
+import { lastThreeMonths } from "@/lib/metrics";
 import { formatRupiah } from "@/lib/money";
 import { monthRange } from "@/lib/money-filters";
 import { createClient } from "@/lib/supabase/server";
@@ -233,7 +234,24 @@ export default async function HomePage({ searchParams }: PageProps<"/">) {
           <p className="text-sm text-white/70">{todayWords}</p>
           <h1 className="font-display text-3xl md:text-4xl">Home</h1>
           <p className="max-w-2xl text-lg text-white/90">
-            {homeHeadline(cash, runway, s?.accounts_without_balance ?? 0)}
+            {/* the amount opens the bank accounts; how long it lasts, the regular costs */}
+            {homeHeadline(cash, runway, s?.accounts_without_balance ?? 0).map((part, i) =>
+              typeof part === "string" ? (
+                part
+              ) : (
+                <Link
+                  key={i}
+                  href={
+                    part.opens === "cash"
+                      ? "/settings/bank"
+                      : `/money?dir=out&status=recurring&${lastThreeMonths(today)}`
+                  }
+                  className="font-medium text-white underline decoration-white/40 underline-offset-4 transition-colors hover:decoration-white"
+                >
+                  {part.text}
+                </Link>
+              ),
+            )}
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-3">
             {worst ? (

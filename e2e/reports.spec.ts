@@ -142,3 +142,24 @@ test("a viewer reads a customer statement but isn't offered to send it", async (
   await expect(page.getByRole("table", { name: "Customer statement" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Send this statement" })).toHaveCount(0);
 });
+
+test("Reports and Settings say where each one stands now", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "desktop covers the flow");
+  await signIn(page, "e2e-owner@example.test");
+  await page.goto("/reports");
+  const library = page.getByRole("region", { name: "All reports" });
+  await expect(library.getByText(/^This month: Rp .+ in, Rp .+ out$/)).toBeVisible();
+  await expect(library.getByText(/^Rp .+ owed now, Rp .+ of it late$/)).toBeVisible();
+  await expect(library.getByText(/^\d+ subscriptions? running$/)).toBeVisible();
+
+  await page.goto("/settings");
+  for (const [row, now] of [
+    ["Getting started", /\d+ of \d+ done/],
+    ["Team", /\d+ (person|people)/],
+    ["Bank connections", /\d+ accounts? · /],
+    ["Categories & rules", /\d+ rules? on/],
+    ["Change history", /\d+ changes? in the last 7 days/],
+  ] as const) {
+    await expect(page.getByRole("link", { name: new RegExp(`^${row}`) })).toContainText(now);
+  }
+});

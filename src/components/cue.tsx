@@ -39,7 +39,7 @@ export type CueProps = {
 const trendWords = (t: Trend) =>
   t.direction === "flat"
     ? "no change"
-    : `${t.direction === "up" ? "up" : "down"}${t.percent === null ? "" : ` ${Math.abs(t.percent)}%`}`;
+    : `${t.direction === "up" ? "up" : "down"}${t.percent === null ? "" : ` ${Math.abs(t.percent).toLocaleString("id-ID")}%`}`;
 
 export function Cue({ label, value, unit, href, trend, status, wide, caption, spark }: CueProps) {
   const shown =

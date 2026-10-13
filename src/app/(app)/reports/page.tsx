@@ -5,6 +5,7 @@ import { Button, Card } from "@/components/ui";
 import { filterInput } from "@/components/filter-bar";
 import type { Role } from "@/lib/auth/routes";
 import { companyAccount } from "@/lib/company";
+import { formatRupiahShort } from "@/lib/money";
 import { statementMessage } from "@/lib/reminders/templates";
 import { REPORTS, findReport } from "@/lib/report-library";
 import { mayRun, readParams, reportQuery } from "@/lib/reports";
@@ -26,13 +27,47 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
   return id ? <RunReport id={id} params={params} role={role} /> : <Library role={role} />;
 }
 
+/** Each report's number right now, in one line (a failed read shows nothing, never a 0). */
+async function glances(today: string): Promise<Partial<Record<string, string>>> {
+  const supabase = await createClient();
+  const head = { count: "exact", head: true } as const;
+  const daysAgo = (d: number) => new Date(Date.now() - d * 86_400_000).toISOString();
+  const [money, mrr, customers, sent, changes] = await Promise.all([
+    supabase.rpc("money_summary").single(),
+    supabase.rpc("mrr_summary", { p_on: today }).single(),
+    supabase.from("customers").select("id", head),
+    supabase.from("reminders").select("id", head).eq("status", "sent").gte("sent_at", daysAgo(30)),
+    supabase.from("audit_log").select("id", head).gte("created_at", daysAgo(7)),
+  ]);
+  const rp = (v: number | null | undefined) => formatRupiahShort(BigInt(v ?? 0));
+  const n = (count: number | null, one: string, more: string) =>
+    `${(count ?? 0).toLocaleString("id-ID")} ${count === 1 ? one : more}`;
+  const m = money.error ? null : money.data;
+  return {
+    cashflow: m ? `This month: ${rp(m.came_in)} in, ${rp(m.went_out)} out` : undefined,
+    aging_detail: m ? `${rp(m.still_owed)} owed now, ${rp(m.past_due)} of it late` : undefined,
+    customer_statement: customers.error ? undefined : n(customers.count, "customer", "customers"),
+    spend_by_category: m ? `${rp(m.went_out)} went out this month` : undefined,
+    revenue_by_customer: m ? `${rp(m.came_in)} came in this month` : undefined,
+    revenue_by_plan: mrr.error
+      ? undefined
+      : `${n(mrr.data.active, "subscription", "subscriptions")} running`,
+    reminder_effectiveness: sent.error
+      ? undefined
+      : `${n(sent.count, "reminder", "reminders")} sent in the last 30 days`,
+    audit_extract: changes.error
+      ? undefined
+      : `${n(changes.count, "change", "changes")} in the last 7 days`,
+  };
+}
+
 async function Library({ role }: { role: Role | null }) {
   const supabase = await createClient();
-  const { data: favourites, error } = await supabase
-    .from("saved_views")
-    .select("id, name, query")
-    .eq("list", "reports")
-    .order("name");
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+  const [{ data: favourites, error }, now] = await Promise.all([
+    supabase.from("saved_views").select("id, name, query").eq("list", "reports").order("name"),
+    glances(today),
+  ]);
   if (error) throw new Error(`Reports didn't load: ${error.message}`);
   const titleOf = (query: string) =>
     findReport(new URLSearchParams(query).get("report") ?? "")?.title ?? "A report";
@@ -98,6 +133,9 @@ async function Library({ role }: { role: Role | null }) {
               <Card className="flex h-full flex-col gap-1">
                 <span className="font-medium">{r.title} →</span>
                 <span className="text-sm text-muted">{r.description}</span>
+                {now[r.id] ? (
+                  <span className="mt-auto pt-2 text-sm font-medium tabular-nums">{now[r.id]}</span>
+                ) : null}
               </Card>
             </Link>
           ))}

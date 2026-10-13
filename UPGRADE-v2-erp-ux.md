@@ -236,6 +236,9 @@ Branch: `phase-9-reports`
 - **P9-T7** Performance pass: Home under 1.5s, list interactions under 100ms, snapshot queries indexed.
 - **P9-T8** Accessibility pass: contrast, focus, screen-reader labels on cues and charts,
   `prefers-reduced-motion`.
+- **P9-T9** Acceptance fixes: Home's headline numbers and the bill numbers / amounts in its work
+  lists open what they count; trend percents in Indonesian format; Settings and Reports show
+  where each one stands now.
 
 ---
 
