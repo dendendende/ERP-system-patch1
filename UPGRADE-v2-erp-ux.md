@@ -80,7 +80,8 @@ A cue is: label, big number, unit, trend arrow vs last period, status colour, an
 
 ### 3.3 Analytical list page (the workhorse)
 
-Used by Money in & out, Invoices, Customers, Reminders. Structure, top to bottom:
+Used by Money in & out, Invoices, Customers (a Reminders list was dropped: reminders live on
+Home and on each bill). Structure, top to bottom:
 
 1. **Filter bar:** date range, direction, category, customer, status, amount range; chips for active
    filters; "Save this view" and a view switcher.

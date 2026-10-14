@@ -4,7 +4,7 @@
 // Local only: refuses any database that isn't on this machine. Rows go in with triggers off
 // (session_replication_role = replica), so they skip the audit log and the rules — they're
 // timing data, not money anyone entered. Then `e2e/perf.spec.ts` times the pages (it skips
-// without them). Remove them before `pnpm test`: matching re-reads 16,666 unmatched transfers.
+// without them). `pnpm test` passes with them in, too.
 import pg from "pg";
 
 const URL =
