@@ -240,6 +240,9 @@ Branch: `phase-9-reports`
 - **P9-T9** Acceptance fixes: Home's headline numbers and the bill numbers / amounts in its work
   lists open what they count; trend percents in Indonesian format; Settings and Reports show
   where each one stands now.
+- **P9-T10** Audit fixes (2026-10-14): typed amounts refuse decimal-looking input; matching by hand
+  saves the payment and the entry's link together; actions say when the database refuses; rupiah
+  health limits are whole rupiah. Next.js 16.3.8.
 
 ---
 

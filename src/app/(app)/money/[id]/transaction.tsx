@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ActionForm } from "@/components/action-form";
 import { type ObjectSection, ObjectPage } from "@/components/object-page";
 import { Button, StatusPill } from "@/components/ui";
 import { CANCELLED_CATEGORY, formatRupiah } from "@/lib/money";
@@ -142,7 +143,7 @@ export async function transactionView(
       description:
         "What the bank doesn't say. Shown in the list, searchable, and every change is kept in the history below.",
       content: canEdit ? (
-        <form action={updateEntry} className="flex flex-col gap-4">
+        <ActionForm action={updateEntry} className="flex flex-col gap-4">
           <input type="hidden" name="entryId" value={entry.id} />
           <input type="hidden" name="transactionId" value={tx.id} />
           <label className="flex flex-col gap-1.5 text-sm font-medium">
@@ -191,7 +192,7 @@ export async function transactionView(
           <Button type="submit" className="self-start">
             Save
           </Button>
-        </form>
+        </ActionForm>
       ) : (
         <div className="flex flex-col gap-1 text-sm">
           <p>{entry.categories?.name ?? "Not labelled yet"}</p>
@@ -214,14 +215,14 @@ export async function transactionView(
             description:
               "Wrong amount, or the bank statement now shows the same money? Cancel this entry: it stays on record but no total counts it. Then record the right one.",
             content: (
-              <form action={cancelHandEntry}>
+              <ActionForm action={cancelHandEntry}>
                 <input type="hidden" name="entryId" value={entry.id} />
                 <input type="hidden" name="transactionId" value={tx.id} />
                 <input type="hidden" name="direction" value={tx.direction} />
                 <Button type="submit" variant="danger">
                   Cancel this entry
                 </Button>
-              </form>
+              </ActionForm>
             ),
           },
         ]

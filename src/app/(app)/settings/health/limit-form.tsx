@@ -4,7 +4,8 @@ import { Button, StatusPill } from "@/components/ui";
 import { type LimitState, updateLimit } from "./actions";
 import { useFormAction } from "@/components/use-form-action";
 
-const field = "h-10 w-28 rounded-lg border border-line bg-surface px-3 text-sm font-normal tabular-nums";
+const field =
+  "h-10 w-28 rounded-lg border border-line bg-surface px-3 text-sm font-normal tabular-nums";
 
 export function LimitForm({
   signal,
@@ -28,12 +29,24 @@ export function LimitForm({
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1.5 text-sm font-medium">
           Safe when {safeWord} ({unit})
-          <input type="number" step="any" name="healthy" defaultValue={healthy} className={field} />
+          <input
+            type="number"
+            step={unit.startsWith("Rp") ? 1 : "any"}
+            name="healthy"
+            defaultValue={healthy}
+            className={field}
+          />
         </label>
         {warning === null ? null : (
           <label className="flex flex-col gap-1.5 text-sm font-medium">
             Danger when {warnWord} ({unit})
-            <input type="number" step="any" name="warning" defaultValue={warning} className={field} />
+            <input
+              type="number"
+              step={unit.startsWith("Rp") ? 1 : "any"}
+              name="warning"
+              defaultValue={warning}
+              className={field}
+            />
           </label>
         )}
         <Button type="submit" variant="secondary" disabled={pending}>

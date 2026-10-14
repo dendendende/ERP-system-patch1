@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { Client } from "pg";
 import { signIn } from "./auth";
 
 // Its own payee per run: bank rows can never be deleted and rules match on the payee name.
@@ -7,6 +8,8 @@ const RUN = Array.from(
   () => "ABCDEFGHJKLMNPQRSTUVWXYZ"[Math.floor(Math.random() * 24)],
 ).join("");
 const PAYEE = `CV RULETEST ${RUN}`;
+const DB_URL =
+  process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:44322/postgres";
 
 const statement = (rows: string) => ({
   name: `rules-${RUN}.csv`,
@@ -78,6 +81,23 @@ test("categories can be added and the built-in ones are protected", async ({ pag
   await expect(page.getByText(`Added ${name}`)).toBeVisible();
 
   const row = page.getByRole("listitem").filter({ hasText: name });
+  // while a rule still files things under it, Remove says why it stays, instead of nothing
+  const db = new Client({ connectionString: DB_URL });
+  await db.connect();
+  try {
+    await db.query(
+      `insert into rules (match_type, pattern, direction, category_id, is_active)
+       select 'contains', 'NEVER MATCHES ' || $2, type, id, false from categories where name = $1`,
+      [name, RUN],
+    );
+    await row.getByRole("button", { name: "Remove" }).click();
+    await expect(
+      row.getByText("A rule or a regular cost still uses this category, so it stays."),
+    ).toBeVisible();
+    await db.query("delete from rules where pattern = $1", [`NEVER MATCHES ${RUN}`]);
+  } finally {
+    await db.end();
+  }
   await row.getByRole("button", { name: "Remove" }).click();
   await expect(page.getByText(name, { exact: true })).toHaveCount(0);
 

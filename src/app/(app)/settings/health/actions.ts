@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 
 export type LimitState = { error?: string; ok?: string };
 
+const RUPIAH_LIMITS = new Set(["net_cashflow", "forecast_low"]);
+
 /** Change one health limit. Owner only (RLS), audited; only snapshots taken afterwards use it. */
 export async function updateLimit(_prev: LimitState, form: FormData): Promise<LimitState> {
   const signal = String(form.get("signal") ?? "");
@@ -13,18 +15,27 @@ export async function updateLimit(_prev: LimitState, form: FormData): Promise<Li
   const warning = warningRaw === null ? null : Number(warningRaw);
   if (!Number.isFinite(healthy) || (warning !== null && !Number.isFinite(warning)))
     return { error: "Limits must be numbers." };
+  // money rule 1: a limit in rupiah is whole rupiah (the database checks it too)
+  const whole = (n: number | null) => n === null || Number.isSafeInteger(n);
+  if (RUPIAH_LIMITS.has(signal) && !(whole(healthy) && whole(warning)))
+    return { error: "Rupiah limits are whole rupiah, without decimals." };
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("health_thresholds")
-    .update(warning === null ? { healthy_limit: healthy } : { healthy_limit: healthy, warning_limit: warning })
+    .update(
+      warning === null
+        ? { healthy_limit: healthy }
+        : { healthy_limit: healthy, warning_limit: warning },
+    )
     .eq("signal", signal)
     .select("signal");
   if (error) {
     return {
-      error: error.code === "23514"
-        ? "The warning limit has to sit on the unsafe side of the safe limit."
-        : "Couldn't save. Try again.",
+      error:
+        error.code === "23514"
+          ? "The warning limit has to sit on the unsafe side of the safe limit."
+          : "Couldn't save. Try again.",
     };
   }
   // row-level security lets the update run but changes nothing when you may not

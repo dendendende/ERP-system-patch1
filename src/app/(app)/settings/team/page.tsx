@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ActionForm } from "@/components/action-form";
 import { Button, Card, StatusPill } from "@/components/ui";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -55,12 +56,12 @@ export default async function TeamPage() {
             ? "Signing in needs only the password. Fine while you work alone; switch it on before you add people or go live."
             : "Signing in needs the password and a 6-digit code from a phone app. This app handles the company's money, so keep it on once there's a team."}
         </p>
-        <form action={setTwoFactor}>
+        <ActionForm action={setTwoFactor}>
           <input type="hidden" name="required" value={String(twoFactor === false)} />
           <Button type="submit" variant="secondary">
             {twoFactor === false ? "Switch on for everyone" : "Switch off for now"}
           </Button>
-        </form>
+        </ActionForm>
       </Card>
 
       <Card className="flex flex-col gap-3">

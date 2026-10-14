@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ActionForm } from "@/components/action-form";
 import { Button, Card, EmptyState, StatusPill } from "@/components/ui";
 import { staleAfterHours, syncState, timeAgo } from "@/lib/bank/sync-status";
 import { createClient } from "@/lib/supabase/server";
@@ -79,13 +80,13 @@ export default async function BankConnectionsPage() {
                     </Link>
                   ) : null}
                   {isOwner ? (
-                    <form action={setAccountActive}>
+                    <ActionForm action={setAccountActive}>
                       <input type="hidden" name="id" value={a.id} />
                       <input type="hidden" name="active" value={a.is_active ? "false" : "true"} />
                       <Button type="submit" variant="ghost" className="text-sm">
                         {a.is_active ? "Switch off" : "Switch on"}
                       </Button>
-                    </form>
+                    </ActionForm>
                   ) : null}
                 </div>
               </div>

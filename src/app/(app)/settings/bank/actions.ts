@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Problem } from "@/components/action-form";
+import { NOT_SAVED, answer } from "@/lib/db-error";
 import { createClient } from "@/lib/supabase/server";
 
 export type BankFormState = { error?: string; added?: string };
@@ -30,12 +32,15 @@ export async function addBankAccount(_prev: BankFormState, form: FormData): Prom
   return { added: `${bank_name} ••${account_last4}` };
 }
 
-export async function setAccountActive(form: FormData) {
+export async function setAccountActive(_prev: Problem, form: FormData): Promise<Problem> {
   const id = String(form.get("id") ?? "");
   const active = form.get("active") === "true";
-  if (!id) return;
+  if (!id) return { error: NOT_SAVED };
 
   const supabase = await createClient();
-  await supabase.from("bank_accounts").update({ is_active: active }).eq("id", id);
-  revalidatePath("/settings/bank");
+  const saved = answer(
+    await supabase.from("bank_accounts").update({ is_active: active }).eq("id", id).select("id"),
+  );
+  if (!saved.error) revalidatePath("/settings/bank");
+  return saved;
 }

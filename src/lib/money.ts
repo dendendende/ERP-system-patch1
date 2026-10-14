@@ -39,10 +39,13 @@ export function formatRupiahShort(amount: bigint): string {
 }
 
 /** What someone typed into an amount box: "1.500.000", "1 500 000" or "1500000". null if it
- * isn't a plain positive whole number of rupiah. */
+ * isn't a plain positive whole number of rupiah. Dots or spaces only ever group thousands (the
+ * same one throughout), so "1.5" or "1.500.00" is refused, never read as Rp 15 or Rp 150.000. */
 export function parseRupiahInput(input: string): bigint | null {
-  const digits = input.replace(/[.\s]/g, "");
-  if (!/^\d{1,18}$/.test(digits)) return null;
+  const typed = input.trim();
+  if (!/^(\d+|\d{1,3}([. ])\d{3}(\2\d{3})*)$/.test(typed)) return null;
+  const digits = typed.replace(/[. ]/g, "");
+  if (digits.length > 18) return null;
   const amount = BigInt(digits);
   return amount > 0n ? amount : null;
 }

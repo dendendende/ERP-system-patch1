@@ -46,6 +46,13 @@ describe("parseRupiahInput", () => {
     expect(parseRupiahInput("1 500 000")).toBe(1_500_000n);
     expect(parseRupiahInput("1500000")).toBe(1_500_000n);
     expect(parseRupiahInput("9007199254740993")).toBe(9_007_199_254_740_993n);
+    expect(parseRupiahInput(" 250.000 ")).toBe(250_000n);
+  });
+
+  it("dots and spaces only group thousands: an amount that looks decimal is refused", () => {
+    for (const bad of ["1.5", "1.50", "1.500.00", "15.00", "1.500 000", "1..500", "1 5", ".500"]) {
+      expect(parseRupiahInput(bad), bad).toBeNull();
+    }
   });
 
   it("refuses anything that isn't whole rupiah", () => {

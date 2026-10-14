@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Problem } from "@/components/action-form";
+import { NOT_SAVED, answer } from "@/lib/db-error";
 import { CANCELLED_CATEGORY, parseRupiahInput } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 
 /** Change the category and details of one transaction. RLS decides who may. */
-export async function updateEntry(form: FormData) {
+export async function updateEntry(_prev: Problem, form: FormData): Promise<Problem> {
   const entryId = String(form.get("entryId") ?? "");
   const transactionId = String(form.get("transactionId") ?? "");
   const categoryId = String(form.get("categoryId") ?? "");
@@ -15,22 +17,27 @@ export async function updateEntry(form: FormData) {
   const counterparty = String(form.get("counterparty") ?? "")
     .trim()
     .slice(0, 200);
-  if (!entryId) return;
+  if (!entryId) return { error: NOT_SAVED };
 
   const supabase = await createClient();
-  await supabase
-    .from("entries")
-    .update({ category_id: categoryId || null, note, counterparty })
-    .eq("id", entryId);
+  const saved = answer(
+    await supabase
+      .from("entries")
+      .update({ category_id: categoryId || null, note, counterparty })
+      .eq("id", entryId)
+      .select("id"),
+  );
+  if (saved.error) return saved;
 
   revalidatePath(`/money/${transactionId}`);
   revalidatePath("/money");
+  return {};
 }
 
 /** A hand entry typed by mistake: filed as cancelled, so no total counts it. It stays on record
  * (and in the history), and choosing another category brings it back. The database refuses this
  * for money the bank sent, and for money that paid a bill. */
-export async function cancelHandEntry(form: FormData) {
+export async function cancelHandEntry(_prev: Problem, form: FormData): Promise<Problem> {
   const entryId = String(form.get("entryId") ?? "");
   const transactionId = String(form.get("transactionId") ?? "");
   const direction = form.get("direction") === "in" ? "in" : "out";
@@ -42,11 +49,19 @@ export async function cancelHandEntry(form: FormData) {
     .eq("type", direction)
     .eq("name", CANCELLED_CATEGORY)
     .maybeSingle();
-  if (!entryId || !category) return;
-  await supabase.from("entries").update({ category_id: category.id }).eq("id", entryId);
+  if (!entryId || !category) return { error: NOT_SAVED };
+  const saved = answer(
+    await supabase
+      .from("entries")
+      .update({ category_id: category.id })
+      .eq("id", entryId)
+      .select("id"),
+  );
+  if (saved.error) return saved;
 
   revalidatePath(`/money/${transactionId}`);
   revalidatePath("/money");
+  return {};
 }
 
 export type MatchState = { error?: string; ok?: string; at?: number };
@@ -54,7 +69,6 @@ export type MatchState = { error?: string; ok?: string; at?: number };
 /** Say which bill this transfer paid: records a payment, audited, and links the entry to it. */
 export async function matchToInvoice(_prev: MatchState, form: FormData): Promise<MatchState> {
   const transactionId = String(form.get("transactionId") ?? "");
-  const entryId = String(form.get("entryId") ?? "");
   const invoiceId = String(form.get("invoiceId") ?? "");
   const amount = parseRupiahInput(String(form.get("amount") ?? ""));
   if (!invoiceId) return { error: "Choose which bill this paid." };
@@ -77,28 +91,7 @@ export async function matchToInvoice(_prev: MatchState, form: FormData): Promise
     };
   }
 
-  // the entry now points at the bill and its customer, like an automatic match does
-  const { data: invoice } = await supabase
-    .from("invoices")
-    .select("customer_id, status")
-    .eq("id", invoiceId)
-    .maybeSingle();
-  const { data: category } = await supabase
-    .from("categories")
-    .select("id")
-    .eq("type", "in")
-    .eq("is_system", true)
-    .eq("name", invoice?.status === "paid" ? "Subscription income" : "Partial payment")
-    .maybeSingle();
-  await supabase
-    .from("entries")
-    .update({
-      invoice_id: invoiceId,
-      customer_id: invoice?.customer_id ?? null,
-      category_id: category?.id ?? null,
-    })
-    .eq("id", entryId);
-
+  // apply_payment also pointed the entry at the bill and its customer, in the same transaction
   revalidatePath(`/money/${transactionId}`);
   revalidatePath("/money");
   return { ok: "Matched to the bill.", at: Date.now() };

@@ -1,3 +1,4 @@
+import { ActionForm } from "@/components/action-form";
 import { Button, Card, StatusPill } from "@/components/ui";
 import { payeeFromDescription } from "@/lib/bank/payee";
 import { formatRupiah } from "@/lib/money";
@@ -42,7 +43,7 @@ export async function NeedsLabelInbox() {
         const payee = payeeFromDescription(item.description);
         const isIn = item.direction === "in";
         return (
-          <form
+          <ActionForm
             key={item.entry_id}
             action={labelEntry}
             className="flex flex-col gap-3 border-t border-line pt-4 first:border-t-0 first:pt-0"
@@ -102,7 +103,7 @@ export async function NeedsLabelInbox() {
             ) : (
               <StatusPill>No payee name to remember</StatusPill>
             )}
-          </form>
+          </ActionForm>
         );
       })}
     </Card>

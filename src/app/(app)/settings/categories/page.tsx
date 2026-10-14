@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ActionForm } from "@/components/action-form";
 import { Button, Card, EmptyState, StatusPill } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
 import { deleteCategory, updateRule } from "./actions";
@@ -74,7 +75,7 @@ export default async function CategoriesAndRulesPage() {
                       ) : (
                         <StatusPill>Off</StatusPill>
                       )}
-                      <form action={updateRule}>
+                      <ActionForm action={updateRule}>
                         <input type="hidden" name="id" value={rule.id} />
                         <input
                           type="hidden"
@@ -84,7 +85,7 @@ export default async function CategoriesAndRulesPage() {
                         <Button type="submit" variant="ghost" className="text-sm">
                           {rule.is_active ? "Switch off" : "Switch on"}
                         </Button>
-                      </form>
+                      </ActionForm>
                     </div>
                   </li>
                 );
@@ -123,12 +124,12 @@ export default async function CategoriesAndRulesPage() {
                   {c.is_system ? (
                     <StatusPill>Built in</StatusPill>
                   ) : used === 0 ? (
-                    <form action={deleteCategory}>
+                    <ActionForm action={deleteCategory}>
                       <input type="hidden" name="id" value={c.id} />
                       <Button type="submit" variant="ghost" className="text-sm">
                         Remove
                       </Button>
-                    </form>
+                    </ActionForm>
                   ) : (
                     <StatusPill>Yours</StatusPill>
                   )}
