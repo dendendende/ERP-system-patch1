@@ -18,33 +18,4 @@ If a session stops (token limit, crash, closed laptop), nothing is lost: progres
 | `phases/phase-05-forecast-pipeline.md` | Cash forecast, renewal pipeline, weekly summary |
 | `phases/phase-06-security-polish.md` | Audit log UI, security hardening, setup guide, polish |
 
-## Setup (do once)
 
-1. Create an empty git repository.
-2. Copy `CLAUDE.md` and `PROGRESS.md` to the repo root, and the `phases/` folder too.
-3. Commit: `git commit -m "chore: add build plan"`.
-4. Open Claude Code in the repo.
-
-## How to run each session
-
-Paste this prompt at the start of **every** session:
-
-```
-Read CLAUDE.md and PROGRESS.md. Open the phase file for the current phase.
-Continue from the first unchecked task. Do ONE task at a time:
-implement it, run its tests, commit, then tick it in PROGRESS.md and commit again.
-Stop and ask me before any task marked [REVIEW].
-```
-
-That's it. If a session dies mid-task, the next session sees the unfinished task in
-`PROGRESS.md`, checks `git status`, and either finishes or resets that one task.
-
-## Rules for you (the human)
-
-- **One phase per branch.** Merge only when the phase's acceptance checklist passes.
-- **Read every task marked `[REVIEW]`** before it merges: money math, migrations, roles, security.
-- **Never give Claude Code** production database access, real bank credentials, or live WhatsApp keys.
-  It works against staging with fake data only.
-- **Start outside applications early** (they take days or weeks and block phases 1 and 3):
-  - Bank aggregator account (sandbox + a view-only bank user)
-  - WhatsApp Business API provider + template approval
